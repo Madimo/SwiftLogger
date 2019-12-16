@@ -30,6 +30,10 @@ open class DefaultLogFormatter: LogFormatter {
         return formatter
     }()
 
+    public init() {
+
+    }
+
     open func format(_ log: Log) -> String {
         var output = ""
 
