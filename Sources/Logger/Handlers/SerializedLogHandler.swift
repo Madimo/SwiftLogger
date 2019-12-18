@@ -32,9 +32,13 @@ public final class SerializedLogHandler: LogHandler, LogPresentable {
             var stmt: OpaquePointer?
 
             if sqlite3_prepare_v2(db, "SELECT COUNT(*) FROM Logs", -1, &stmt, nil) == SQLITE_OK {
+                var count = 0
                 if sqlite3_step(stmt) == SQLITE_ROW {
-                    return sqlite3_column_int(stmt, 0)
+                    count = sqlite3_column_int(stmt, 0)
                 }
+
+                sqlite3_finalize(stmt)
+                return count
             } else {
                 logErrorMessage()
             }
@@ -65,6 +69,8 @@ public final class SerializedLogHandler: LogHandler, LogPresentable {
                     function: sqlite3_column_string(stmt, 7)
                 ))
             }
+
+            sqlite3_finalize(stmt)
         } else {
             logErrorMessage()
         }
