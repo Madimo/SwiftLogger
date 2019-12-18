@@ -22,7 +22,7 @@ public enum Level: Int, Comparable, CustomStringConvertible, Codable, CaseIterab
         case .trace: return "TRACE"
         case .debug: return "DEBUG"
         case .info: return "INFO"
-        case .warning: return "WARNING"
+        case .warning: return "WARN"
         case .error: return "ERROR"
         case .fatal: return "FATAL"
         }
