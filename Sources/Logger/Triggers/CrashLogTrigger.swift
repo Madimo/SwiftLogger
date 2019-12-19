@@ -109,6 +109,7 @@ private func unsetupSignalHandlers() {
 
 private func exceptionHandler(_ exception: NSException) {
     CrashLogTrigger.shared.receive(exception: exception)
+    unsetupSignalHandlers()
 
     oldExceptionHandler?(exception)
 }
