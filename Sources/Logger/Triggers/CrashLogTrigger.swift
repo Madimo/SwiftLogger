@@ -57,6 +57,11 @@ public final class CrashLogTrigger: LogTrigger {
         loggers.forEach {
             $0.fatal(message)
         }
+
+        // ensure log handlers finish logging
+        Logger.logQueue.sync {
+            // do nothing
+        }
     }
 
 }

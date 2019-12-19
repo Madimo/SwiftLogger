@@ -11,6 +11,8 @@ import Foundation
 
 public final class Logger {
 
+    static let logQueue = DispatchQueue(label: "com.Madimo.Logger.logQueue", qos: .utility)
+
     public let identifier: String
     public var isEnabled = true
 
