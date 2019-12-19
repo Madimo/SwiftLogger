@@ -12,19 +12,19 @@ import XCTest
 
 final class LoggerTests: XCTestCase {
 
-    func wait(_ logger: Logger, timeout: TimeInterval, file: String = #file, line: Int = #line) {
-        let expectation = XCTestExpectation()
-        logger.dispatchQueue.async {
-            expectation.fulfill()
-        }
-
-        switch XCTWaiter.wait(for: [expectation], timeout: timeout) {
-        case .timedOut:
-            recordFailure(withDescription: "Wait for logger timed out.", inFile: file, atLine: line, expected: true)
-        default:
-            break
-        }
-    }
+//    func wait(_ logger: Logger, timeout: TimeInterval, file: String = #file, line: Int = #line) {
+//        let expectation = XCTestExpectation()
+//        logger.dispatchQueue.async {
+//            expectation.fulfill()
+//        }
+//
+//        switch XCTWaiter.wait(for: [expectation], timeout: timeout) {
+//        case .timedOut:
+//            recordFailure(withDescription: "Wait for logger timed out.", inFile: file, atLine: line, expected: true)
+//        default:
+//            break
+//        }
+//    }
 
     func testAddAndRemoveLogHandler() {
         let logger = Logger()
@@ -66,8 +66,6 @@ final class LoggerTests: XCTestCase {
         let tag = Tag.default
 
         let log = logger.log(item, level: level, tag: tag)
-        wait(logger, timeout: 1)
-
         let lastLog = try XCTUnwrap(testHandler.lastLog)
         XCTAssertEqual(lastLog.message, String(item))
         XCTAssertEqual(lastLog.level, level)
@@ -87,27 +85,21 @@ final class LoggerTests: XCTestCase {
         let message = "This is a log message."
 
         logger.trace(message)
-        wait(logger, timeout: 1)
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .trace)
 
         logger.debug(message)
-        wait(logger, timeout: 1)
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .debug)
 
         logger.info(message)
-        wait(logger, timeout: 1)
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .info)
 
         logger.warning(message)
-        wait(logger, timeout: 1)
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .warning)
 
         logger.error(message)
-        wait(logger, timeout: 1)
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .error)
 
         logger.fatal(message)
-        wait(logger, timeout: 1)
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .fatal)
     }
 
@@ -120,27 +112,21 @@ final class LoggerTests: XCTestCase {
         let message = "This is a log message."
 
         logger.trace(message)
-        wait(logger, timeout: 1)
         XCTAssertNil(testHandler.lastLog)
 
         logger.debug(message)
-        wait(logger, timeout: 1)
         XCTAssertNil(testHandler.lastLog)
 
         logger.info(message)
-        wait(logger, timeout: 1)
         XCTAssertNil(testHandler.lastLog)
 
         logger.warning(message)
-        wait(logger, timeout: 1)
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .warning)
 
         logger.error(message)
-        wait(logger, timeout: 1)
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .error)
 
         logger.fatal(message)
-        wait(logger, timeout: 1)
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .fatal)
     }
 
@@ -151,7 +137,6 @@ final class LoggerTests: XCTestCase {
         logger.add(handler: testHandler)
 
         logger.error(0)
-        wait(logger, timeout: 1)
         XCTAssertNil(testHandler.lastLog)
     }
 
@@ -162,7 +147,6 @@ final class LoggerTests: XCTestCase {
         logger.add(handler: testHandler)
 
         logger.error(0)
-        wait(logger, timeout: 1)
         XCTAssertNil(testHandler.lastLog)
     }
 
@@ -173,11 +157,9 @@ final class LoggerTests: XCTestCase {
         logger.add(handler: testHandler)
 
         logger.error(0)
-        wait(logger, timeout: 1)
         XCTAssertNil(testHandler.lastLog)
 
         logger.error("This is a log message.")
-        wait(logger, timeout: 1)
         XCTAssertNotNil(testHandler.lastLog)
     }
 
@@ -187,12 +169,10 @@ final class LoggerTests: XCTestCase {
         logger.add(handler: testHandler)
 
         logger.error(0)
-        wait(logger, timeout: 1)
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.tag), .default)
 
         let tag = Tag(name: "This is a tag.")
         logger.error(0, tag: tag)
-        wait(logger, timeout: 1)
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.tag), tag)
     }
 
@@ -205,13 +185,11 @@ final class LoggerTests: XCTestCase {
 
         let message0 = 0
         logger.error(message0)
-        wait(logger, timeout: 1)
         XCTAssertEqual(sequenceLogHandler.logs.count, 1)
         XCTAssertEqual(sequenceLogHandler.logs[0].message, String(message0))
 
         let message1 = "This is a log message."
         logger.debug(message1)
-        wait(logger, timeout: 1)
         XCTAssertEqual(sequenceLogHandler.logs.count, 2)
         XCTAssertEqual(sequenceLogHandler.logs[1].message, message1)
 
@@ -230,7 +208,6 @@ final class LoggerTests: XCTestCase {
 
         do {
             let log = logger.debug("This is a log message.")
-            wait(logger, timeout: 1)
             XCTAssertEqual(serializedLogHandler.logs.count, 1)
             XCTAssertEqual(serializedLogHandler.logs[0].message, log.message)
             XCTAssertEqual(Int(serializedLogHandler.logs[0].date.timeIntervalSince1970), Int(log.date.timeIntervalSince1970))
@@ -244,25 +221,21 @@ final class LoggerTests: XCTestCase {
 
         do {
             let log = logger.info("This is another\n\nlog message.")
-            wait(logger, timeout: 1)
             XCTAssertEqual(serializedLogHandler.logs[0].message, log.message)
         }
 
         do {
             let log = logger.info("🎉 This is a log message contains Emoji 😄.")
-            wait(logger, timeout: 1)
             XCTAssertEqual(serializedLogHandler.logs[0].message, log.message)
         }
 
         do {
             let log = logger.info("#//This is a log message contains '''?\"./*")
-            wait(logger, timeout: 1)
             XCTAssertEqual(serializedLogHandler.logs[0].message, log.message)
         }
 
         do {
             let log = logger.info("This is a log message contains 中文")
-            wait(logger, timeout: 1)
             XCTAssertEqual(serializedLogHandler.logs[0].message, log.message)
         }
 
@@ -273,7 +246,6 @@ final class LoggerTests: XCTestCase {
         XCTAssertTrue(serializedLogHandler.logs.isEmpty)
 
         logger.info("This is another log message.")
-        wait(logger, timeout: 1)
         try serializedLogHandler.open()
         XCTAssertTrue(serializedLogHandler.logs.isEmpty)
     }
@@ -285,7 +257,6 @@ final class LoggerTests: XCTestCase {
         logger.add(handler: fileLoghandler)
 
         var log = logger.log("This is a message.", level: .debug)
-        wait(logger, timeout: 1)
         fileLoghandler.close()
 
         var data = try XCTUnwrap(FileManager.default.contents(atPath: url.path))
@@ -295,7 +266,6 @@ final class LoggerTests: XCTestCase {
 
         try fileLoghandler.open()
         log = logger.log("This is another message.", level: .debug)
-        wait(logger, timeout: 1)
         fileLoghandler.close()
 
         data = try XCTUnwrap(FileManager.default.contents(atPath: url.path))

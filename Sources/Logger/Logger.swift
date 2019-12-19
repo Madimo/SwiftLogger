@@ -12,31 +12,25 @@ import Foundation
 public final class Logger {
 
     public let identifier: String
-    public var dispatchQueue: DispatchQueue
     public var isEnabled = true
 
     public private(set) var handlers = [LogHandler]()
+    public private(set) var triggers = [LogTrigger]()
 
-    public init(
-        identifier: String = "com.Madimo.Logger",
-        dispatchQueue: DispatchQueue = DispatchQueue(label: "com.Madimo.Logger", qos: .utility)
-    ) {
+    public init(identifier: String = "com.Madimo.Logger") {
         self.identifier = identifier
-        self.dispatchQueue = dispatchQueue
     }
 
     private func log(_ log: Log) -> Log {
         guard isEnabled else { return log }
 
-        dispatchQueue.async {
-            self.handlers
-                .filter { $0.isEnabled }
-                .filter { log.level >= $0.outputLevel }
-                .filter { $0.filter?(log) ?? true }
-                .forEach {
-                    $0.write(log)
-                }
-        }
+        handlers
+            .filter { $0.isEnabled }
+            .filter { log.level >= $0.outputLevel }
+            .filter { $0.filter?(log) ?? true }
+            .forEach {
+                $0.write(log)
+            }
 
         return log
     }
@@ -93,6 +87,20 @@ public final class Logger {
 
     public func remove(handler: LogHandler) {
         handlers.removeAll(where: { $0.identifier == handler.identifier })
+    }
+
+    public func add(trigger: LogTrigger) {
+        guard triggers.first(where: { $0.identifier == trigger.identifier }) == nil else { return }
+
+        triggers.append(trigger)
+        trigger.receive(logger: self)
+    }
+
+    public func remove(trigger: LogTrigger) {
+        if let index = triggers.firstIndex(where: { $0.identifier == trigger.identifier }) {
+            triggers.remove(at: index)
+            trigger.remove(logger: self)
+        }
     }
 
 }

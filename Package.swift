@@ -8,11 +8,15 @@ let package = Package(
         .library(
             name: "Logger",
             targets: ["Logger"]
-        ),
+        )
     ],
     targets: [
         .target(
             name: "Logger"
+        ),
+        .target(
+            name: "LoggerDemo",
+            dependencies: ["Logger"]
         ),
         .testTarget(
             name: "LoggerTests",
