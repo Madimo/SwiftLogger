@@ -12,19 +12,19 @@ import XCTest
 
 final class LoggerTests: XCTestCase {
 
-//    func wait(_ logger: Logger, timeout: TimeInterval, file: String = #file, line: Int = #line) {
-//        let expectation = XCTestExpectation()
-//        logger.dispatchQueue.async {
-//            expectation.fulfill()
-//        }
-//
-//        switch XCTWaiter.wait(for: [expectation], timeout: timeout) {
-//        case .timedOut:
-//            recordFailure(withDescription: "Wait for logger timed out.", inFile: file, atLine: line, expected: true)
-//        default:
-//            break
-//        }
-//    }
+    func waitLogQueue(timeout: TimeInterval = 10, file: String = #file, line: Int = #line) {
+        let expectation = XCTestExpectation()
+        Logger.logQueue.async {
+            expectation.fulfill()
+        }
+
+        switch XCTWaiter.wait(for: [expectation], timeout: timeout) {
+        case .timedOut:
+            recordFailure(withDescription: "Wait for logger timed out.", inFile: file, atLine: line, expected: true)
+        default:
+            break
+        }
+    }
 
     func testAddAndRemoveLogHandler() {
         let logger = Logger()
@@ -208,6 +208,8 @@ final class LoggerTests: XCTestCase {
 
         do {
             let log = logger.debug("This is a log message.")
+            waitLogQueue()
+
             XCTAssertEqual(serializedLogHandler.logs.count, 1)
             XCTAssertEqual(serializedLogHandler.logs[0].message, log.message)
             XCTAssertEqual(Int(serializedLogHandler.logs[0].date.timeIntervalSince1970), Int(log.date.timeIntervalSince1970))
@@ -221,31 +223,41 @@ final class LoggerTests: XCTestCase {
 
         do {
             let log = logger.info("This is another\n\nlog message.")
+            waitLogQueue()
+
             XCTAssertEqual(serializedLogHandler.logs[0].message, log.message)
         }
 
         do {
             let log = logger.info("🎉 This is a log message contains Emoji 😄.")
+            waitLogQueue()
+
             XCTAssertEqual(serializedLogHandler.logs[0].message, log.message)
         }
 
         do {
             let log = logger.info("#//This is a log message contains '''?\"./*")
+            waitLogQueue()
+
             XCTAssertEqual(serializedLogHandler.logs[0].message, log.message)
         }
 
         do {
             let log = logger.info("This is a log message contains 中文")
+            waitLogQueue()
+
             XCTAssertEqual(serializedLogHandler.logs[0].message, log.message)
         }
 
-        try serializedLogHandler.truncate()
+        serializedLogHandler.deleteAllLogs()
+        waitLogQueue()
         XCTAssertTrue(serializedLogHandler.logs.isEmpty)
 
         try serializedLogHandler.close()
         XCTAssertTrue(serializedLogHandler.logs.isEmpty)
 
         logger.info("This is another log message.")
+        waitLogQueue()
         try serializedLogHandler.open()
         XCTAssertTrue(serializedLogHandler.logs.isEmpty)
     }
@@ -257,6 +269,7 @@ final class LoggerTests: XCTestCase {
         logger.add(handler: fileLoghandler)
 
         var log = logger.log("This is a message.", level: .debug)
+        waitLogQueue()
         fileLoghandler.close()
 
         var data = try XCTUnwrap(FileManager.default.contents(atPath: url.path))
@@ -266,6 +279,7 @@ final class LoggerTests: XCTestCase {
 
         try fileLoghandler.open()
         log = logger.log("This is another message.", level: .debug)
+        waitLogQueue()
         fileLoghandler.close()
 
         data = try XCTUnwrap(FileManager.default.contents(atPath: url.path))

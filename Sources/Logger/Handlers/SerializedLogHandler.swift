@@ -17,6 +17,8 @@ public final class SerializedLogHandler: LogHandler, LogPresentable {
     public var isEnabled: Bool = true
     public var filter: Filter?
     public let fileURL: URL
+    public var autoDeleteOutdatedLogs = true
+    public var outdatedLogDate = Date(timeIntervalSinceNow: -5 * 24 * 3600)
 
     public var isClosed: Bool {
         db == nil
@@ -54,7 +56,7 @@ public final class SerializedLogHandler: LogHandler, LogPresentable {
         var stmt: OpaquePointer?
         let sql = """
             SELECT message, date, level, tag, file, line, column, function FROM Logs ORDER BY id DESC
-        """
+            """
 
         if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
             while sqlite3_step(stmt) == SQLITE_ROW {
@@ -126,11 +128,19 @@ public final class SerializedLogHandler: LogHandler, LogPresentable {
                 column INTEGER,
                 function TEXT
             )
-        """
+            """
 
         if sqlite3_exec(db, sql, nil, nil, nil) != SQLITE_OK {
             let message = logErrorMessage()
             throw HandlerError(reason: .databaseOpenFailed, message: message)
+        }
+
+        Logger.logQueue.asyncAfter(deadline: .now() + 5) { [weak self] in
+            guard let self = self else { return }
+
+            if self.autoDeleteOutdatedLogs {
+                self.deleteOutdatedLogs()
+            }
         }
     }
 
@@ -159,23 +169,46 @@ public final class SerializedLogHandler: LogHandler, LogPresentable {
                 \(log.column),
                 '\(encode(log.function))'
             )
-        """
+            """
 
         if sqlite3_exec(db, sql, nil, nil, nil) != SQLITE_OK {
             logErrorMessage()
         }
     }
 
-    public func truncate() throws {
+    public func deleteAllLogs() {
+        Logger.logQueue.async { [weak self] in
+            self?._deleteAllLogs()
+        }
+    }
+
+    private func _deleteAllLogs() {
         guard let db = db else { return }
 
         let sql = """
             DELETE FROM Logs
-        """
+            """
 
         if sqlite3_exec(db, sql, nil, nil, nil) != SQLITE_OK {
-            let message = logErrorMessage()
-            throw HandlerError(reason: .databaseTruncateFailed, message: message)
+            logErrorMessage()
+        }
+    }
+
+    public func deleteOutdatedLogs() {
+        Logger.logQueue.async { [weak self] in
+            self?._deleteOutdatedLogs()
+        }
+    }
+
+    private func _deleteOutdatedLogs() {
+        guard let db = db else { return }
+
+        let sql = """
+            DELETE FROM Logs WHERE date < \(outdatedLogDate.timeIntervalSince1970)
+            """
+
+        if sqlite3_exec(db, sql, nil, nil, nil) != SQLITE_OK {
+            logErrorMessage()
         }
     }
 
