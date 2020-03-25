@@ -371,7 +371,7 @@ extension LogsViewController {
         }
 
         private func monoFont(ofSize size: CGFloat, weight: UIFont.Weight = .regular) -> UIFont? {
-            if #available(iOS 12.0, *) {
+            if #available(iOS 13.0, *) {
                 return UIFont.monospacedSystemFont(ofSize: size, weight: weight)
             } else {
                 return UIFont(name: "Verdana", size: size)
