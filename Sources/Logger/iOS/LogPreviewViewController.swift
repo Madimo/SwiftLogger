@@ -13,13 +13,20 @@ import UIKit
 
 open class LogsViewController: UIViewController {
 
-    private var viewModels: [ViewModel]
+    private let presentable: LogPresentable
+    private var viewModels = [ViewModel]()
     private lazy var displaying = viewModels
 
-    private(set) lazy var tableView: UITableView = {
+    private lazy var tableView: UITableView = {
         let view = UITableView(frame: .zero, style: .plain)
         view.keyboardDismissMode = .interactive
         view.register(LogCell.self, forCellReuseIdentifier: NSStringFromClass(LogCell.self))
+        view.refreshControl = UIRefreshControl()
+        view.refreshControl?.addTarget(
+            self,
+            action: #selector(onRefresh),
+            for: .valueChanged
+        )
         view.dataSource = self
         view.delegate = self
         return view
@@ -33,7 +40,7 @@ open class LogsViewController: UIViewController {
         return controller
     }()
 
-    private(set) lazy var searchController: UISearchController = {
+    private lazy var searchController: UISearchController = {
         let controller = UISearchController()
         if #available(iOS 9.1, *) { controller.obscuresBackgroundDuringPresentation = false }
         controller.searchBar.showsSearchResultsButton = true
@@ -44,7 +51,7 @@ open class LogsViewController: UIViewController {
     }()
 
     public init(presentable: LogPresentable) {
-        viewModels = presentable.logs.map { ViewModel(log: $0) }
+        self.presentable = presentable
 
         super.init(nibName: nil, bundle: nil)
     }
@@ -57,7 +64,7 @@ open class LogsViewController: UIViewController {
         super.viewDidLoad()
 
         setupViews()
-        reloadData()
+        onRefresh()
 
         NotificationCenter.default.addObserver(
             self,
@@ -99,6 +106,15 @@ open class LogsViewController: UIViewController {
 
         tableView.contentInset.bottom = height
         tableView.scrollIndicatorInsets.bottom = height
+    }
+
+    @objc private func onRefresh() {
+        viewModels = presentable.logs.map { ViewModel(log: $0) }
+        reloadData()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.tableView.refreshControl?.endRefreshing()
+        }
     }
 
     private func reloadData() {
