@@ -112,7 +112,7 @@ open class LogsViewController: UIViewController {
         viewModels = presentable.logs.map { ViewModel(log: $0) }
         reloadData()
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             self?.tableView.refreshControl?.endRefreshing()
         }
     }
