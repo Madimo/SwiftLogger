@@ -57,19 +57,20 @@ open class DefaultLogFormatter: LogFormatter {
         }
 
         if showFunction {
-            output += "<\(log.function)> "
+            output += "<\(log.function)>"
         }
 
         if showTag {
             if showDefaultTag || log.tag != Tag.default {
-                output += "[\(log.tag.name)] "
+                output += "[\(log.tag.name)]"
             }
         }
 
         if showLevel {
-            output += "[\(log.level)] "
+            output += "[\(log.level)]"
         }
 
+        output += " "
         output += log.message
 
         return output

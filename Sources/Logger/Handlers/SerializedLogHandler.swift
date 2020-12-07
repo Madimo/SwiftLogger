@@ -123,8 +123,8 @@ public final class SerializedLogHandler: LogHandler, LogPresentable {
                 message TEXT,
                 date REAL NOT NULL,
                 level INTEGER NOT NULL,
-                tag Text,
-                file Text,
+                tag TEXT,
+                file TEXT,
                 line INTEGER,
                 column INTEGER,
                 function TEXT
