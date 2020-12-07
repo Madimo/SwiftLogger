@@ -24,6 +24,7 @@ public final class SerializedLogHandler: LogHandler, LogPresentable {
         db == nil
     }
 
+    private let tableName = "Logs"
     private var db: OpaquePointer?
     private var enabled = true
 
@@ -33,7 +34,7 @@ public final class SerializedLogHandler: LogHandler, LogPresentable {
         let count: Int = {
             var stmt: OpaquePointer?
 
-            if sqlite3_prepare_v2(db, "SELECT COUNT(*) FROM Logs", -1, &stmt, nil) == SQLITE_OK {
+            if sqlite3_prepare_v2(db, "SELECT COUNT(*) FROM \(tableName)", -1, &stmt, nil) == SQLITE_OK {
                 var count = 0
                 if sqlite3_step(stmt) == SQLITE_ROW {
                     count = sqlite3_column_int(stmt, 0)
@@ -55,7 +56,7 @@ public final class SerializedLogHandler: LogHandler, LogPresentable {
 
         var stmt: OpaquePointer?
         let sql = """
-            SELECT message, date, level, tag, file, line, column, function FROM Logs ORDER BY id DESC
+            SELECT message, date, level, tag, file, line, column, function FROM \(tableName) ORDER BY id DESC
             """
 
         if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
@@ -117,7 +118,7 @@ public final class SerializedLogHandler: LogHandler, LogPresentable {
         }
 
         let sql = """
-            CREATE TABLE IF NOT EXISTS Logs (
+            CREATE TABLE IF NOT EXISTS \(tableName) (
                 id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 message TEXT,
                 date REAL NOT NULL,
@@ -159,34 +160,44 @@ public final class SerializedLogHandler: LogHandler, LogPresentable {
         guard let db = db else { return }
 
         let sql = """
-            INSERT INTO Logs (message, date, level, tag, file, line, column, function) VALUES (
-                '\(encode(log.message))',
-                \(log.date.timeIntervalSince1970),
-                \(log.level.rawValue),
-                '\(encode(log.tag.name))',
-                '\(encode(log.file))',
-                \(log.line),
-                \(log.column),
-                '\(encode(log.function))'
+            INSERT INTO \(tableName) (message, date, level, tag, file, line, column, function) VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?
             )
             """
 
-        if sqlite3_exec(db, sql, nil, nil, nil) != SQLITE_OK {
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            logErrorMessage()
+            return
+        }
+
+        sqlite3_bind_string(stmt, 1, log.message)
+        sqlite3_bind_double(stmt, 2, log.date.timeIntervalSince1970)
+        sqlite3_bind_int(stmt, 3, log.level.rawValue)
+        sqlite3_bind_string(stmt, 4, log.tag.name)
+        sqlite3_bind_string(stmt, 5, log.file)
+        sqlite3_bind_int(stmt, 6, log.line)
+        sqlite3_bind_int(stmt, 7, log.column)
+        sqlite3_bind_string(stmt, 8, log.function)
+
+        if sqlite3_step(stmt) != SQLITE_DONE {
             logErrorMessage()
         }
+
+        sqlite3_finalize(stmt)
     }
 
     public func deleteAllLogs() {
         Logger.logQueue.async { [weak self] in
-            self?._deleteAllLogs()
+            self?.onDeleteAllLogs()
         }
     }
 
-    private func _deleteAllLogs() {
+    private func onDeleteAllLogs() {
         guard let db = db else { return }
 
         let sql = """
-            DELETE FROM Logs
+            DELETE FROM \(tableName)
             """
 
         if sqlite3_exec(db, sql, nil, nil, nil) != SQLITE_OK {
@@ -196,36 +207,20 @@ public final class SerializedLogHandler: LogHandler, LogPresentable {
 
     public func deleteOutdatedLogs() {
         Logger.logQueue.async { [weak self] in
-            self?._deleteOutdatedLogs()
+            self?.onDeleteOutdatedLogs()
         }
     }
 
-    private func _deleteOutdatedLogs() {
+    private func onDeleteOutdatedLogs() {
         guard let db = db else { return }
 
         let sql = """
-            DELETE FROM Logs WHERE date < \(outdatedLogDate.timeIntervalSince1970)
+            DELETE FROM \(tableName) WHERE date < \(outdatedLogDate.timeIntervalSince1970)
             """
 
         if sqlite3_exec(db, sql, nil, nil, nil) != SQLITE_OK {
             logErrorMessage()
         }
-    }
-
-    private func encode(_ text: String) -> String {
-        text.replacingOccurrences(of: "'", with: "''")
-    }
-
-    private func sqlite3_column_string(_ stmt: OpaquePointer!, _ iCol: Int32) -> String {
-        String(cString: sqlite3_column_text(stmt, iCol))
-    }
-
-    private func sqlite3_column_int(_ stmt: OpaquePointer!, _ iCol: Int32) -> Int {
-        #if arch(x86_64) || arch(arm64)
-        return Int(SQLite3.sqlite3_column_int64(stmt, iCol))
-        #else
-        return Int(SQLite3.sqlite3_column_int(stmt, iCol))
-        #endif
     }
 
     @discardableResult
@@ -238,6 +233,50 @@ public final class SerializedLogHandler: LogHandler, LogPresentable {
     }
 
 }
+
+// MARK: - SQLite3
+
+extension SerializedLogHandler {
+
+    private func sqlite3_column_string(_ stmt: OpaquePointer!, _ column: Int32) -> String {
+        String(cString: sqlite3_column_text(stmt, column))
+    }
+
+    private func sqlite3_column_int(_ stmt: OpaquePointer!, _ column: Int32) -> Int {
+        #if arch(x86_64) || arch(arm64)
+        return Int(SQLite3.sqlite3_column_int64(stmt, column))
+        #else
+        return Int(SQLite3.sqlite3_column_int(stmt, column))
+        #endif
+    }
+
+    @discardableResult
+    private func sqlite3_bind_int(_ stmt: OpaquePointer!, _ bindIndex: Int32, _ value: Int) -> Int32 {
+        #if arch(x86_64) || arch(arm64)
+        return sqlite3_bind_int64(stmt, bindIndex, Int64(value))
+        #else
+        return sqlite3_bind_int32(stmt, bindIndex, Int32(value))
+        #endif
+    }
+
+    @discardableResult
+    private func sqlite3_bind_string(
+        _ stmt: OpaquePointer!,
+        _ bindIndex: Int32,
+        _ value: String
+    ) -> Int32 {
+        sqlite3_bind_text(
+            stmt,
+            bindIndex,
+            value,
+            -1,
+            unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        )
+    }
+
+}
+
+// MARK: -
 
 extension SerializedLogHandler {
 
