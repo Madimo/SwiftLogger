@@ -13,8 +13,6 @@ import Logger
 let logger = Logger()
 logger.add(trigger: CrashLogTrigger.shared)
 logger.add(handler: ConsoleLogHandler())
-logger.add(handler: try! SerializedLogHandler(fileURL: URL(fileURLWithPath: "/Users/Madimo/Desktop/logs.db")))
+logger.add(handler: try! SerializedLogHandler(fileURL: URL(fileURLWithPath: "~/Desktop/logs.db")))
 
 logger.info("Hello World!")
-
-NSArray().object(at: 1)
