@@ -12,7 +12,13 @@ import XCTest
 
 final class LoggerTests: XCTestCase {
 
-    func waitLogQueue(timeout: TimeInterval = 10, file: String = #file, line: Int = #line) {
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+
+        continueAfterFailure = false
+    }
+
+    private func waitLogQueue(timeout: TimeInterval = 10, file: String = #file, line: Int = #line) {
         let expectation = XCTestExpectation()
         Logger.logQueue.async {
             expectation.fulfill()
@@ -20,7 +26,21 @@ final class LoggerTests: XCTestCase {
 
         switch XCTWaiter.wait(for: [expectation], timeout: timeout) {
         case .timedOut:
-            recordFailure(withDescription: "Wait for logger timed out.", inFile: file, atLine: line, expected: true)
+            record(
+                XCTIssue(
+                    type: .thrownError,
+                    compactDescription: "Wait for logger timed out.",
+                    detailedDescription: nil,
+                    sourceCodeContext: .init(
+                        location: .init(
+                            filePath: file,
+                            lineNumber: line
+                        )
+                    ),
+                    associatedError: nil,
+                    attachments: []
+                )
+            )
         default:
             break
         }
