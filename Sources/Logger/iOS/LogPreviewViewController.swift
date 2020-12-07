@@ -42,7 +42,7 @@ open class LogsViewController: UIViewController {
 
     private lazy var searchController: UISearchController = {
         let controller = UISearchController()
-        if #available(iOS 9.1, *) { controller.obscuresBackgroundDuringPresentation = false }
+        controller.obscuresBackgroundDuringPresentation = false
         controller.searchBar.showsSearchResultsButton = true
         controller.searchBar.delegate = self
         controller.delegate = self
@@ -80,10 +80,12 @@ open class LogsViewController: UIViewController {
         view.addSubview(tableView)
 
         tableView.translatesAutoresizingMaskIntoConstraints = false
-        tableView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
-        tableView.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
-        tableView.rightAnchor.constraint(equalTo: view.rightAnchor).isActive = true
-        tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
+        NSLayoutConstraint.activate([
+            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            tableView.leftAnchor.constraint(equalTo: view.leftAnchor),
+            tableView.rightAnchor.constraint(equalTo: view.rightAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
 
         if #available(iOS 11.0, *) {
             navigationItem.searchController = searchController
@@ -93,7 +95,9 @@ open class LogsViewController: UIViewController {
     }
 
     @objc private func handleKeyboardNotification(_ notification: NSNotification) {
-        guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+        guard let keyboardFrame = notification
+                .userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
+        else { return }
 
         let realFrame = view.convert(keyboardFrame, from: nil)
         var height = view.bounds.height - realFrame.origin.y
@@ -357,26 +361,35 @@ extension LogsViewController {
             lastLineContentView.addArrangedSubview(tagLabel)
 
             messageContainerView.translatesAutoresizingMaskIntoConstraints = false
-            messageContainerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8).isActive = true
-            messageContainerView.leftAnchor.constraint(equalTo: contentView.leftAnchor, constant: 16).isActive = true
-            messageContainerView.rightAnchor.constraint(equalTo: contentView.rightAnchor, constant: -16).isActive = true
+            NSLayoutConstraint.activate([
+                messageContainerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
+                messageContainerView.leftAnchor.constraint(equalTo: contentView.leftAnchor, constant: 16),
+                messageContainerView.rightAnchor.constraint(equalTo: contentView.rightAnchor, constant: -16)
+            ])
 
             messageLabel.translatesAutoresizingMaskIntoConstraints = false
-            messageLabel.topAnchor.constraint(equalTo: messageContainerView.topAnchor).isActive = true
-            messageLabel.leftAnchor.constraint(equalTo: messageContainerView.leftAnchor).isActive = true
-            messageLabel.rightAnchor.constraint(equalTo: messageContainerView.rightAnchor).isActive = true
+            NSLayoutConstraint.activate([
+                messageLabel.topAnchor.constraint(equalTo: messageContainerView.topAnchor),
+                messageLabel.leftAnchor.constraint(equalTo: messageContainerView.leftAnchor),
+                messageLabel.rightAnchor.constraint(equalTo: messageContainerView.rightAnchor)
+            ])
 
             middleTextLabel.translatesAutoresizingMaskIntoConstraints = false
-            middleTextLabel.topAnchor.constraint(equalTo: messageContainerView.bottomAnchor, constant: 8).isActive = true
-            middleTextLabel.leftAnchor.constraint(equalTo: messageContainerView.leftAnchor).isActive = true
-            middleTextLabel.rightAnchor.constraint(equalTo: messageContainerView.rightAnchor).isActive = true
+            NSLayoutConstraint.activate([
+                middleTextLabel.topAnchor.constraint(equalTo: messageContainerView.bottomAnchor, constant: 8),
+                middleTextLabel.leftAnchor.constraint(equalTo: messageContainerView.leftAnchor),
+                middleTextLabel.rightAnchor.constraint(equalTo: messageContainerView.rightAnchor)
+            ])
 
             lastLineContentView.translatesAutoresizingMaskIntoConstraints = false
             lastLineToMessageConstraint = lastLineContentView.topAnchor.constraint(equalTo: messageContainerView.bottomAnchor, constant: 8)
             lastLineToMiddleTextConstraint = lastLineContentView.topAnchor.constraint(equalTo: middleTextLabel.bottomAnchor, constant: 6)
-            lastLineContentView.leftAnchor.constraint(equalTo: messageContainerView.leftAnchor).isActive = true
-            lastLineContentView.rightAnchor.constraint(equalTo: messageContainerView.rightAnchor).isActive = true
-            lastLineContentView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -6).isActive = true
+
+            NSLayoutConstraint.activate([
+                lastLineContentView.leftAnchor.constraint(equalTo: messageContainerView.leftAnchor),
+                lastLineContentView.rightAnchor.constraint(equalTo: messageContainerView.rightAnchor),
+                lastLineContentView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -6)
+            ])
         }
 
         override func layoutSubviews() {
@@ -613,13 +626,16 @@ extension LogsViewController {
                  height: height
             )
 
-             view.addSubview(tableView)
+            view.addSubview(tableView)
 
-             tableView.translatesAutoresizingMaskIntoConstraints = false
-             tableView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
-             tableView.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
-             tableView.rightAnchor.constraint(equalTo: view.rightAnchor).isActive = true
-             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
+            tableView.translatesAutoresizingMaskIntoConstraints = false
+
+            NSLayoutConstraint.activate([
+                tableView.topAnchor.constraint(equalTo: view.topAnchor),
+                tableView.leftAnchor.constraint(equalTo: view.leftAnchor),
+                tableView.rightAnchor.constraint(equalTo: view.rightAnchor),
+                tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            ])
         }
 
         func numberOfSections(in tableView: UITableView) -> Int {
