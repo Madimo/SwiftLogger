@@ -264,27 +264,27 @@ final class LoggerTests: XCTestCase {
 
     func testFileLogHandler() throws {
         let url =  URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString + ".log")
-        let fileLoghandler = try FileLogHandler(fileURL: url)
+        let fileLogHandler = try FileLogHandler(fileURL: url)
         let logger = Logger()
-        logger.add(handler: fileLoghandler)
+        logger.add(handler: fileLogHandler)
 
         var log = logger.log("This is a message.", level: .debug)
         waitLogQueue()
-        fileLoghandler.close()
+        fileLogHandler.close()
 
         var data = try XCTUnwrap(FileManager.default.contents(atPath: url.path))
         var text = try XCTUnwrap(String(data: data, encoding: .utf8))
-        var logText = fileLoghandler.logFormatter.format(log) + "\n"
+        var logText = fileLogHandler.logFormatter.format(log) + "\n"
         XCTAssertEqual(logText, text)
 
-        try fileLoghandler.open()
+        try fileLogHandler.open()
         log = logger.log("This is another message.", level: .debug)
         waitLogQueue()
-        fileLoghandler.close()
+        fileLogHandler.close()
 
         data = try XCTUnwrap(FileManager.default.contents(atPath: url.path))
         text = try XCTUnwrap(String(data: data, encoding: .utf8))
-        logText += fileLoghandler.logFormatter.format(log) + "\n"
+        logText += fileLogHandler.logFormatter.format(log) + "\n"
         XCTAssertEqual(logText, text)
     }
 
