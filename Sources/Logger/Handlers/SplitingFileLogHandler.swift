@@ -14,7 +14,7 @@ public final class SplitingFileLogHandler: LogHandler {
     public var identifier: String
     public var outputLevel = Level.trace
     public var isEnabled = true
-    public var filter: Filter?
+    public lazy var filter: LogFilter = AllAcceptLogFilter()
     public let directory: URL
     public let fileNameFormatter: DateFormatter
     public let filePathExtension: String

@@ -11,12 +11,10 @@ import Foundation
 
 public protocol LogHandler {
 
-    typealias Filter = (Log) -> Bool
-
     var identifier: String { get }
     var outputLevel: Level { get set }
     var isEnabled: Bool { get set }
-    var filter: Filter? { get set }
+    var filter: LogFilter { get set }
 
     func write(_ log: Log)
 

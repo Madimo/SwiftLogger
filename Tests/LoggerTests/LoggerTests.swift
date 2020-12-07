@@ -170,10 +170,10 @@ final class LoggerTests: XCTestCase {
         XCTAssertNil(testHandler.lastLog)
     }
 
-    func testFilter() {
+    func testGeneralLogFilter() {
         let logger = Logger()
         let testHandler = TestLogHandler()
-        testHandler.filter = { Int($0.message) == nil }
+        testHandler.filter = GeneralLogFilter { Int($0.message) == nil }
         logger.add(handler: testHandler)
 
         logger.error(0)
@@ -181,6 +181,33 @@ final class LoggerTests: XCTestCase {
 
         logger.error("This is a log message.")
         XCTAssertNotNil(testHandler.lastLog)
+    }
+
+    func testConditionLogFilter() {
+        let tag = Tag(name: "Test")
+        let logger = Logger()
+        let testHandler = TestLogHandler()
+        testHandler.filter = ConditionLogFilter(
+            messageKeyword: "test",
+            includeLevels: [.error, .warning],
+            includeTags: [tag]
+        )
+        logger.add(handler: testHandler)
+
+        let message0 = "this_is_test_log."
+        let message1 = "this_is_a_log."
+
+        logger.error(message0)
+        XCTAssertNil(testHandler.lastLog)
+
+        logger.info(message0, tag: tag)
+        XCTAssertNil(testHandler.lastLog)
+
+        logger.info(message1, tag: tag)
+        XCTAssertNil(testHandler.lastLog)
+
+        logger.error(message0, tag: tag)
+        XCTAssertEqual(testHandler.lastLog?.message, message0)
     }
 
     func testTag() {
@@ -366,7 +393,8 @@ final class LoggerTests: XCTestCase {
         ("testOutputLevel", testOutputLevel),
         ("testLoggerEnabled", testLoggerEnabled),
         ("testLogHandlerEnabled", testLogHandlerEnabled),
-        ("testFilter", testFilter),
+        ("testGeneralLogFilter", testGeneralLogFilter),
+        ("testConditionLogFilter", testConditionLogFilter),
         ("testTag", testTag),
         ("testSequenceLogHandler", testSequenceLogHandler),
         ("testSerializedLogHandler", testSerializedLogHandler),

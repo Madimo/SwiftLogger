@@ -14,7 +14,7 @@ public final class SequenceLogHandler: LogHandler, LogPresentable {
     public var identifier: String
     public var outputLevel = Level.trace
     public var isEnabled = true
-    public var filter: Filter?
+    public lazy var filter: LogFilter = AllAcceptLogFilter()
 
     public private(set) var logs = [Log]()
 

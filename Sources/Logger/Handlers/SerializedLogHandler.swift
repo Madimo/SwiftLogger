@@ -15,7 +15,7 @@ public final class SerializedLogHandler: LogHandler, LogPresentable {
     public var identifier: String
     public var outputLevel = Level.trace
     public var isEnabled: Bool = true
-    public var filter: Filter?
+    public lazy var filter: LogFilter = AllAcceptLogFilter()
     public let fileURL: URL
     public var autoDeleteOutdatedLogs = true
     public var outdatedLogDate = Date(timeIntervalSinceNow: -5 * 24 * 3600)

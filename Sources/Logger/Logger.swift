@@ -29,7 +29,7 @@ public final class Logger {
         handlers
             .filter { $0.isEnabled }
             .filter { log.level >= $0.outputLevel }
-            .filter { $0.filter?(log) ?? true }
+            .filter { $0.filter.contains(log) }
             .forEach {
                 $0.write(log)
             }
