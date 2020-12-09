@@ -40,9 +40,7 @@ public final class SerializedLogHandler: LogHandler {
     }
 
     public func write(_ log: Log) {
-        Logger.logQueue.async { [self] in
-            insert(log)
-        }
+        insert(log)
     }
 
     public func open() throws {

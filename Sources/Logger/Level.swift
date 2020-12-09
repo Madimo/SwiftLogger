@@ -11,7 +11,7 @@ import Foundation
 
 public enum Level: Int, Comparable, CustomStringConvertible, Codable, CaseIterable {
 
-    /// Designates finer-grained informational events than the DEBUG.
+    /// Designates finer-grained informational events than the `debug`.
     case trace
 
     /// Designates fine-grained informational events that are most useful to debug an application.

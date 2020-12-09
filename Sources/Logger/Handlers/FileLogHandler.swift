@@ -64,10 +64,9 @@ public final class FileLogHandler: LogHandler {
         let logText = logFormatter.format(log) + "\n"
 
         if let data = logText.data(using: .utf8) {
-            Logger.logQueue.async {
-                guard let fileHandle = self.fileHandle else { return }
-                fileHandle.write(data)
-            }
+            guard let fileHandle = fileHandle else { return }
+
+            fileHandle.write(data)
         }
     }
 

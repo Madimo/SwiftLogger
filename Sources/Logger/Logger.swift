@@ -26,12 +26,14 @@ public final class Logger {
     private func log(_ log: Log) -> Log {
         guard isEnabled else { return log }
 
-        handlers
-            .filter { $0.isEnabled }
-            .filter { $0.filter.contains(log) }
-            .forEach {
-                $0.write(log)
-            }
+        Self.logQueue.async { [self] in
+            handlers
+                .filter { $0.isEnabled }
+                .filter { $0.filter.contains(log) }
+                .forEach {
+                    $0.write(log)
+                }
+        }
 
         return log
     }
@@ -50,7 +52,7 @@ public final class Logger {
         ))
     }
 
-    /// Designates finer-grained informational events than the DEBUG.
+    /// Designates finer-grained informational events than the `debug`.
     @discardableResult
     public func trace(_ item: Any, module: Module = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
         log(item, level: .trace, module: module, file: file, line: line, column: column, function: function)
@@ -116,15 +118,7 @@ extension Logger {
 
     static var `default`: Logger = {
         let logger = Logger(identifier: "com.Madimo.Logger.Default")
-        
-        let consoleLogHandler = ConsoleLogHandler()
-        consoleLogHandler.logFormatter = {
-            let formatter = DefaultLogFormatter()
-            formatter.showFile = false
-            return formatter
-        }()
-        logger.add(handler: consoleLogHandler)
-
+        logger.add(handler: ConsoleLogHandler())
         return logger
     }()
 

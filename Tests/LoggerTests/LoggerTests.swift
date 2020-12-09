@@ -86,6 +86,8 @@ final class LoggerTests: XCTestCase {
         let module = Module.default
 
         let log = logger.log(item, level: level, module: module)
+        waitLogQueue()
+
         let lastLog = try XCTUnwrap(testHandler.lastLog)
         XCTAssertEqual(lastLog.message, String(item))
         XCTAssertEqual(lastLog.level, level)
@@ -105,21 +107,27 @@ final class LoggerTests: XCTestCase {
         let message = "This is a log message."
 
         logger.trace(message)
+        waitLogQueue()
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .trace)
 
         logger.debug(message)
+        waitLogQueue()
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .debug)
 
         logger.info(message)
+        waitLogQueue()
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .info)
 
         logger.warn(message)
+        waitLogQueue()
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .warn)
 
         logger.error(message)
+        waitLogQueue()
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .error)
 
         logger.fatal(message)
+        waitLogQueue()
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .fatal)
     }
 
@@ -150,9 +158,11 @@ final class LoggerTests: XCTestCase {
         logger.add(handler: testHandler)
 
         logger.error(0)
+        waitLogQueue()
         XCTAssertNil(testHandler.lastLog)
 
         logger.error("This is a log message.")
+        waitLogQueue()
         XCTAssertNotNil(testHandler.lastLog)
     }
 
@@ -171,15 +181,19 @@ final class LoggerTests: XCTestCase {
         let message1 = "this_is_a_log."
 
         logger.error(message0)
+        waitLogQueue()
         XCTAssertNil(testHandler.lastLog)
 
         logger.info(message0, module: module)
+        waitLogQueue()
         XCTAssertNil(testHandler.lastLog)
 
         logger.info(message1, module: module)
+        waitLogQueue()
         XCTAssertNil(testHandler.lastLog)
 
         logger.error(message0, module: module)
+        waitLogQueue()
         XCTAssertEqual(testHandler.lastLog?.message, message0)
     }
 
@@ -189,10 +203,12 @@ final class LoggerTests: XCTestCase {
         logger.add(handler: testHandler)
 
         logger.error(0)
+        waitLogQueue()
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.module), .default)
 
         let module = Module(name: "This is a module.")
         logger.error(0, module: module)
+        waitLogQueue()
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.module), module)
     }
 
@@ -205,11 +221,13 @@ final class LoggerTests: XCTestCase {
 
         let message0 = 0
         logger.error(message0)
+        waitLogQueue()
         XCTAssertEqual(sequenceLogHandler.logs.count, 1)
         XCTAssertEqual(sequenceLogHandler.logs[0].message, String(message0))
 
         let message1 = "This is a log message."
         logger.debug(message1)
+        waitLogQueue()
         XCTAssertEqual(sequenceLogHandler.logs.count, 2)
         XCTAssertEqual(sequenceLogHandler.logs[1].message, message1)
 
