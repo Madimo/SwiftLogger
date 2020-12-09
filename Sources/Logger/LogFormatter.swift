@@ -17,8 +17,8 @@ open class DefaultLogFormatter: LogFormatter {
 
     open var showDate = true
     open var showLevel = true
-    open var showTag = true
-    open var showDefaultTag = false
+    open var showModule = true
+    open var showDefaultModule = false
     open var showFile = true
     open var showLine = true
     open var showColumn = false
@@ -60,9 +60,9 @@ open class DefaultLogFormatter: LogFormatter {
             output += "<\(log.function)>"
         }
 
-        if showTag {
-            if showDefaultTag || log.tag != Tag.default {
-                output += "[\(log.tag.name)]"
+        if showModule {
+            if showDefaultModule || log.module != Module.default {
+                output += "[\(log.module.name)]"
             }
         }
 

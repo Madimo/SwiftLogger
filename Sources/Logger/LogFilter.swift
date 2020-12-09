@@ -47,21 +47,21 @@ final public class ConditionLogFilter: LogFilter {
 
     public var messageKeyword: String?
     public var includeLevels: [Level]
-    public var includeTags: [Tag]
+    public var includeModules: [Module]
 
     public init(
         messageKeyword: String? = nil,
         includeLevels: [Level] = Level.allCases,
-        includeTags: [Tag] = [.default]
+        includeModules: [Module] = [.default]
     ) {
         self.messageKeyword = messageKeyword
         self.includeLevels = includeLevels
-        self.includeTags = includeTags
+        self.includeModules = includeModules
     }
 
     public func contains(_ log: Log) -> Bool {
         guard includeLevels.contains(log.level) else { return false }
-        guard includeTags.contains(log.tag) else { return false }
+        guard includeModules.contains(log.module) else { return false }
 
         if let keyword = messageKeyword, !keyword.isEmpty {
             return log.message.contains(keyword)

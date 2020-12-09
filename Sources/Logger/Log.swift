@@ -14,7 +14,7 @@ public struct Log: Codable, Equatable {
     public var message: String
     public var date: Date
     public var level: Level
-    public var tag: Tag
+    public var module: Module
     public var file: String
     public var line: Int
     public var column: Int
@@ -24,7 +24,7 @@ public struct Log: Codable, Equatable {
         lhs.message == rhs.message &&
             fabs(lhs.date.timeIntervalSince1970 - rhs.date.timeIntervalSince1970) < Double.ulpOfOne &&
             lhs.level == rhs.level &&
-            lhs.tag == rhs.tag &&
+            lhs.module == rhs.module &&
             lhs.file == rhs.file &&
             lhs.line == rhs.line &&
             lhs.column == rhs.column &&

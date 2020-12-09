@@ -1,5 +1,5 @@
 //
-//  Tag.swift
+//  Module.swift
 //  Logger
 //
 //
@@ -9,7 +9,7 @@
 
 import Foundation
 
-public struct Tag: Codable, Hashable {
+public struct Module: Codable, Hashable {
 
     public var name: String
 
@@ -19,16 +19,16 @@ public struct Tag: Codable, Hashable {
 
 }
 
-extension Tag: Equatable {
+extension Module: Equatable {
 
-    public static func ==(lhs: Tag, rhs: Tag) -> Bool {
+    public static func ==(lhs: Module, rhs: Module) -> Bool {
         lhs.name == rhs.name
     }
 
 }
 
-extension Tag {
+extension Module {
 
-    public static let `default` = Tag(name: "Default")
+    public static let `default` = Module(name: "Default")
 
 }

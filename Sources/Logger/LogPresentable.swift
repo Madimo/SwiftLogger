@@ -18,7 +18,7 @@ public protocol LogPresentable {
 
     func getLogCount(_ completion: @escaping (Int) -> Void)
     func getLogs(filter: ConditionLogFilter, before: SerializedLog?, count: Int, completion: @escaping ([SerializedLog]) -> Void)
-    func getAllTags(completion: @escaping ([Tag]) -> Void)
+    func getAllModules(completion: @escaping ([Module]) -> Void)
     func deleteLogs(_ logs: [SerializedLog])
     func deleteAllLogs()
     func export(completion: @escaping (URL) -> Void)

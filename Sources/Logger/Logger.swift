@@ -38,12 +38,12 @@ public final class Logger {
     }
 
     @discardableResult
-    public func log(_ item: Any, level: Level, tag: Tag = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
+    public func log(_ item: Any, level: Level, module: Module = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
         log(.init(
             message: String(describing: item),
             date: Date(),
             level: level,
-            tag: tag,
+            module: module,
             file: (file as NSString).lastPathComponent,
             line: line,
             column: column,
@@ -52,33 +52,33 @@ public final class Logger {
     }
 
     @discardableResult
-    public func trace(_ item: Any, tag: Tag = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
-        log(item, level: .trace, tag: tag, file: file, line: line, column: column, function: function)
+    public func trace(_ item: Any, module: Module = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
+        log(item, level: .trace, module: module, file: file, line: line, column: column, function: function)
     }
 
     @discardableResult
-    public func info(_ item: Any, tag: Tag = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
-        log(item, level: .info, tag: tag, file: file, line: line, column: column, function: function)
+    public func info(_ item: Any, module: Module = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
+        log(item, level: .info, module: module, file: file, line: line, column: column, function: function)
     }
 
     @discardableResult
-    public func debug(_ item: Any, tag: Tag = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
-        log(item, level: .debug, tag: tag, file: file, line: line, column: column, function: function)
+    public func debug(_ item: Any, module: Module = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
+        log(item, level: .debug, module: module, file: file, line: line, column: column, function: function)
     }
 
     @discardableResult
-    public func warn(_ item: Any, tag: Tag = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
-        log(item, level: .warn, tag: tag, file: file, line: line, column: column, function: function)
+    public func warn(_ item: Any, module: Module = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
+        log(item, level: .warn, module: module, file: file, line: line, column: column, function: function)
     }
 
     @discardableResult
-    public func error(_ item: Any, tag: Tag = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
-        log(item, level: .error, tag: tag, file: file, line: line, column: column, function: function)
+    public func error(_ item: Any, module: Module = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
+        log(item, level: .error, module: module, file: file, line: line, column: column, function: function)
     }
 
     @discardableResult
-    public func fatal(_ item: Any, tag: Tag = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
-        log(item, level: .fatal, tag: tag, file: file, line: line, column: column, function: function)
+    public func fatal(_ item: Any, module: Module = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
+        log(item, level: .fatal, module: module, file: file, line: line, column: column, function: function)
     }
 
     public func add(handler: LogHandler) {

@@ -58,7 +58,7 @@ open class LogsViewController: UIViewController {
         ConditionLogFilter(
             messageKeyword: searchController.searchBar.text,
             includeLevels: Array(filterController.selectedLevels),
-            includeTags: Array(filterController.selectedTags)
+            includeModules: Array(filterController.selectedModules)
         )
     }
 
@@ -159,11 +159,11 @@ open class LogsViewController: UIViewController {
     private func fetchLogs(before: SerializedLog?, completion: @escaping ([SerializedLog]) -> Void) -> FetchTask {
         let task = FetchTask()
 
-        presentable.getAllTags { tags in
+        presentable.getAllModules { modules in
             DispatchQueue.main.async { [self] in
                 guard !task.isCanceledOrFinished else { return }
 
-                filterController.allTags = tags
+                filterController.allModules = modules
                 presentable.getLogs(filter: currentLogFilter, before: before, count: 1000) { logs in
                     DispatchQueue.main.async {
                         guard !task.isCanceledOrFinished else { return }
@@ -350,7 +350,7 @@ extension LogsViewController {
                 levelLabel.text = viewModel.levelText
                 levelLabel.backgroundColor = viewModel.levelBackgroundColor
                 dateLabel.text = viewModel.dateText
-                tagLabel.text = viewModel.tagText
+                moduleLabel.text = viewModel.moduleText
 
                 messageContainerView.layer.mask = !viewModel.isExpanded && viewModel.shouldMaskMessage ? messageMaskLayer : nil
 
@@ -429,7 +429,7 @@ extension LogsViewController {
             return view
         }()
 
-        private lazy var tagLabel: UILabel = {
+        private lazy var moduleLabel: UILabel = {
             let view = UILabel()
             view.font = .systemFont(ofSize: 12)
             view.textColor = .systemGray
@@ -459,7 +459,7 @@ extension LogsViewController {
             messageContainerView.addSubview(messageLabel)
             lastLineContentView.addArrangedSubview(levelLabel)
             lastLineContentView.addArrangedSubview(dateLabel)
-            lastLineContentView.addArrangedSubview(tagLabel)
+            lastLineContentView.addArrangedSubview(moduleLabel)
 
             messageContainerView.translatesAutoresizingMaskIntoConstraints = false
             NSLayoutConstraint.activate([
@@ -546,7 +546,7 @@ extension LogsViewController {
         var levelText: String
         var levelBackgroundColor: UIColor
         var dateText: String
-        var tagText: String
+        var moduleText: String
 
         var isExpanded = false
         var shouldMaskMessage = false
@@ -570,7 +570,7 @@ extension LogsViewController {
             middleText = "\(log.log.file):\(log.log.line) - \(log.log.function)"
             levelText = log.log.level.description
             dateText = Self.dateFormatter.string(from: log.log.date)
-            tagText = log.log.tag == .default ? "" : log.log.tag.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            moduleText = log.log.module == .default ? "" : log.log.module.name.trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
         private var containerWidth: CGFloat = 0
@@ -642,7 +642,7 @@ extension LogsViewController {
     private class FilterViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
 
         private static let levelsFilterUserDefaultsKey = "com.Madimo.Logger.LogsViewController.Filter.Levels"
-        private static let tagsFilterUserDefaultsKey = "com.Madimo.Logger.LogsViewController.Filter.Tags"
+        private static let modulesFilterUserDefaultsKey = "com.Madimo.Logger.LogsViewController.Filter.Modules"
 
         private(set) var selectedLevels: Set<Level> = {
             if let rawLevels = UserDefaults.standard.array(forKey: levelsFilterUserDefaultsKey) as? [Int] {
@@ -660,29 +660,29 @@ extension LogsViewController {
             }
         }
 
-        private(set) var selectedTags: Set<Tag> {
+        private(set) var selectedModules: Set<Module> {
             get {
-                if let rawTags = UserDefaults.standard.array(forKey: Self.tagsFilterUserDefaultsKey) as? [String] {
-                    let tags = Set(rawTags.compactMap { Tag(name: $0) })
-                    return tags.intersection(allTags)
+                if let rawModules = UserDefaults.standard.array(forKey: Self.modulesFilterUserDefaultsKey) as? [String] {
+                    let modules = Set(rawModules.compactMap { Module(name: $0) })
+                    return modules.intersection(allModules)
                 }
 
                 return []
             }
             set {
-                UserDefaults.standard.set(newValue.map { $0.name }, forKey: Self.tagsFilterUserDefaultsKey)
+                UserDefaults.standard.set(newValue.map { $0.name }, forKey: Self.modulesFilterUserDefaultsKey)
             }
         }
 
-        var allTags: [Tag] = [.default] {
+        var allModules: [Module] = [.default] {
             didSet {
-                guard allTags != oldValue else { return }
+                guard allModules != oldValue else { return }
 
-                var tags = Set(allTags)
-                tags.insert(.default)
+                var modules = Set(allModules)
+                modules.insert(.default)
 
-                allTags = tags.sorted(by: { $0.name < $1.name })
-                selectedTags = tags.union(Set(oldValue))
+                allModules = modules.sorted(by: { $0.name < $1.name })
+                selectedModules = modules.union(Set(oldValue))
 
                 tableView.reloadData()
             }
@@ -712,8 +712,8 @@ extension LogsViewController {
             var height: CGFloat = tableView.rowHeight * CGFloat(Level.allCases.count) +
                 tableView.sectionHeaderHeight + tableView.sectionFooterHeight
 
-            if !allTags.isEmpty {
-                height += tableView.rowHeight * CGFloat(allTags.count) +
+            if !allModules.isEmpty {
+                height += tableView.rowHeight * CGFloat(allModules.count) +
                     tableView.sectionHeaderHeight + tableView.sectionFooterHeight
             }
 
@@ -735,15 +735,15 @@ extension LogsViewController {
         }
 
         func numberOfSections(in tableView: UITableView) -> Int {
-            allTags.isEmpty ? 1 : 2
+            allModules.isEmpty ? 1 : 2
         }
 
         func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
             switch section {
             case 0:
-                return "LEVELS"
+                return "Levels"
             case 1:
-                return "TAGS"
+                return "Modules"
             default:
                 return ""
             }
@@ -754,7 +754,7 @@ extension LogsViewController {
             case 0:
                 return Level.allCases.count
             case 1:
-                return allTags.count
+                return allModules.count
             default:
                 fatalError()
             }
@@ -770,9 +770,9 @@ extension LogsViewController {
                 cell.textLabel?.text = level.description
                 cell.accessoryType = selectedLevels.contains(level) ? .checkmark : .none
             case 1:
-                let tag = allTags[indexPath.row]
-                cell.textLabel?.text = tag.name
-                cell.accessoryType = selectedTags.contains(tag) ? .checkmark : .none
+                let module = allModules[indexPath.row]
+                cell.textLabel?.text = module.name
+                cell.accessoryType = selectedModules.contains(module) ? .checkmark : .none
             default:
                 fatalError()
             }
@@ -796,13 +796,13 @@ extension LogsViewController {
                     cell.accessoryType = .checkmark
                 }
             case 1:
-                let tag = allTags[indexPath.row]
+                let module = allModules[indexPath.row]
 
-                if selectedTags.contains(tag) {
-                    selectedTags.remove(tag)
+                if selectedModules.contains(module) {
+                    selectedModules.remove(module)
                     cell.accessoryType = .none
                 } else {
-                    selectedTags.insert(tag)
+                    selectedModules.insert(module)
                     cell.accessoryType = .checkmark
                 }
             default:

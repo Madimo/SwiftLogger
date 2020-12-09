@@ -83,14 +83,14 @@ final class LoggerTests: XCTestCase {
 
         let item = 0
         let level = Level.debug
-        let tag = Tag.default
+        let module = Module.default
 
-        let log = logger.log(item, level: level, tag: tag)
+        let log = logger.log(item, level: level, module: module)
         let lastLog = try XCTUnwrap(testHandler.lastLog)
         XCTAssertEqual(lastLog.message, String(item))
         XCTAssertEqual(lastLog.level, level)
         XCTAssertEqual(lastLog.date, log.date)
-        XCTAssertEqual(lastLog.tag, tag)
+        XCTAssertEqual(lastLog.module, module)
         XCTAssertEqual(lastLog.file, log.file)
         XCTAssertEqual(lastLog.line, log.line)
         XCTAssertEqual(lastLog.column, log.column)
@@ -184,13 +184,13 @@ final class LoggerTests: XCTestCase {
     }
 
     func testConditionLogFilter() {
-        let tag = Tag(name: "Test")
+        let module = Module(name: "Test")
         let logger = Logger()
         let testHandler = TestLogHandler()
         testHandler.filter = ConditionLogFilter(
             messageKeyword: "test",
             includeLevels: [.error, .warning],
-            includeTags: [tag]
+            includeModules: [module]
         )
         logger.add(handler: testHandler)
 
@@ -200,27 +200,27 @@ final class LoggerTests: XCTestCase {
         logger.error(message0)
         XCTAssertNil(testHandler.lastLog)
 
-        logger.info(message0, tag: tag)
+        logger.info(message0, module: module)
         XCTAssertNil(testHandler.lastLog)
 
-        logger.info(message1, tag: tag)
+        logger.info(message1, module: module)
         XCTAssertNil(testHandler.lastLog)
 
-        logger.error(message0, tag: tag)
+        logger.error(message0, module: module)
         XCTAssertEqual(testHandler.lastLog?.message, message0)
     }
 
-    func testTag() {
+    func testModule() {
         let logger = Logger()
         let testHandler = TestLogHandler()
         logger.add(handler: testHandler)
 
         logger.error(0)
-        XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.tag), .default)
+        XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.module), .default)
 
-        let tag = Tag(name: "This is a tag.")
-        logger.error(0, tag: tag)
-        XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.tag), tag)
+        let module = Module(name: "This is a module.")
+        logger.error(0, module: module)
+        XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.module), module)
     }
 
     func testSequenceLogHandler() {
@@ -278,7 +278,7 @@ final class LoggerTests: XCTestCase {
                 filter: ConditionLogFilter(
                     messageKeyword: nil,
                     includeLevels: Level.allCases,
-                    includeTags: [.default]
+                    includeModules: [.default]
                 ),
                 before: nil,
                 count: 20,
@@ -295,14 +295,14 @@ final class LoggerTests: XCTestCase {
         }
 
         do {
-            let tag1 = Tag(name: "Tag1")
-            let tag2 = Tag(name: "Tag2")
+            let module1 = Module(name: "Module1")
+            let module2 = Module(name: "Module2")
 
-            logger.debug("[Hit] This should be filtered.", tag: tag1)
+            logger.debug("[Hit] This should be filtered.", module: module1)
             logger.error("[Hit] This should be filtered.")
-            logger.error("This should be filtered.", tag: tag1)
-            let log0 = logger.error("[Hit] This should not be filtered.", tag: tag1)
-            let log1 = logger.fatal("[Hit] This should not be filtered.", tag: tag2)
+            logger.error("This should be filtered.", module: module1)
+            let log0 = logger.error("[Hit] This should not be filtered.", module: module1)
+            let log1 = logger.fatal("[Hit] This should not be filtered.", module: module2)
 
             expectation = .init()
 
@@ -310,7 +310,7 @@ final class LoggerTests: XCTestCase {
                 filter: ConditionLogFilter(
                     messageKeyword: "[Hit]",
                     includeLevels: [.error, .fatal],
-                    includeTags: [tag1, tag2]
+                    includeModules: [module1, module2]
                 ),
                 before: nil,
                 count: 20,
@@ -335,7 +335,7 @@ final class LoggerTests: XCTestCase {
                 filter: ConditionLogFilter(
                     messageKeyword: "[Hit]",
                     includeLevels: [.error, .fatal],
-                    includeTags: [tag1, tag2]
+                    includeModules: [module1, module2]
                 ),
                 before: nil,
                 count: 1,
@@ -358,7 +358,7 @@ final class LoggerTests: XCTestCase {
                 filter: ConditionLogFilter(
                     messageKeyword: "[Hit]",
                     includeLevels: [.error, .fatal],
-                    includeTags: [tag1, tag2]
+                    includeModules: [module1, module2]
                 ),
                 before: SerializedLog(id: 6, log: log1),
                 count: 20,
@@ -523,7 +523,7 @@ final class LoggerTests: XCTestCase {
         ("testLogHandlerEnabled", testLogHandlerEnabled),
         ("testGeneralLogFilter", testGeneralLogFilter),
         ("testConditionLogFilter", testConditionLogFilter),
-        ("testTag", testTag),
+        ("testModule", testModule),
         ("testSequenceLogHandler", testSequenceLogHandler),
         ("testSerializedLogHandler", testSerializedLogHandler),
         ("testSplitingFileLogHandler", testSplitingFileLogHandler),

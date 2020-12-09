@@ -71,7 +71,7 @@ public final class SerializedLogHandler: LogHandler {
                 message TEXT,
                 date REAL NOT NULL,
                 level INTEGER NOT NULL,
-                tag TEXT,
+                module TEXT,
                 file TEXT,
                 line INTEGER,
                 column INTEGER,
@@ -108,7 +108,7 @@ public final class SerializedLogHandler: LogHandler {
         guard let db = db else { return }
 
         let sql = """
-            INSERT INTO \(tableName) (message, date, level, tag, file, line, column, function) VALUES (
+            INSERT INTO \(tableName) (message, date, level, module, file, line, column, function) VALUES (
                 ?, ?, ?, ?, ?, ?, ?, ?
             )
             """
@@ -122,7 +122,7 @@ public final class SerializedLogHandler: LogHandler {
         sqlite3_bind_string(stmt, 1, log.message)
         sqlite3_bind_double(stmt, 2, log.date.timeIntervalSince1970)
         sqlite3_bind_int(stmt, 3, log.level.rawValue)
-        sqlite3_bind_string(stmt, 4, log.tag.name)
+        sqlite3_bind_string(stmt, 4, log.module.name)
         sqlite3_bind_string(stmt, 5, log.file)
         sqlite3_bind_int(stmt, 6, log.line)
         sqlite3_bind_int(stmt, 7, log.column)
@@ -221,7 +221,7 @@ extension SerializedLogHandler: LogPresentable {
             return
         }
 
-        guard !filter.includeTags.isEmpty else {
+        guard !filter.includeModules.isEmpty else {
             completion([])
             return
         }
@@ -230,7 +230,7 @@ extension SerializedLogHandler: LogPresentable {
 
         var whereExpression = ""
         whereExpression += "level IN (\(filter.includeLevels.map { String($0.rawValue) }.joined(separator: ",")))"
-        whereExpression += " AND tag IN (\(filter.includeTags.map { _ in "?" }.joined(separator: ",")))"
+        whereExpression += " AND module IN (\(filter.includeModules.map { _ in "?" }.joined(separator: ",")))"
 
         if let messageKeyword = filter.messageKeyword, !messageKeyword.isEmpty {
             whereExpression += " AND message LIKE ?"
@@ -242,7 +242,7 @@ extension SerializedLogHandler: LogPresentable {
 
         var stmt: OpaquePointer?
         let sql = """
-            SELECT id, message, date, level, tag, file, line, column, function
+            SELECT id, message, date, level, module, file, line, column, function
             FROM \(tableName)
             WHERE \(whereExpression)
             ORDER BY id DESC
@@ -256,7 +256,7 @@ extension SerializedLogHandler: LogPresentable {
 
         var parameterIndex: Int32 = 1
 
-        filter.includeTags.forEach {
+        filter.includeModules.forEach {
             sqlite3_bind_string(stmt, parameterIndex, $0.name)
             parameterIndex += 1
         }
@@ -274,7 +274,7 @@ extension SerializedLogHandler: LogPresentable {
                         message: sqlite3_column_string(stmt, 1),
                         date: Date(timeIntervalSince1970: sqlite3_column_double(stmt, 2)),
                         level: Level(rawValue: sqlite3_column_int(stmt, 3))!,
-                        tag: Tag(name: sqlite3_column_string(stmt, 4)),
+                        module: Module(name: sqlite3_column_string(stmt, 4)),
                         file: sqlite3_column_string(stmt, 5),
                         line: sqlite3_column_int(stmt, 6),
                         column: sqlite3_column_int(stmt, 7),
@@ -288,25 +288,25 @@ extension SerializedLogHandler: LogPresentable {
         completion(logs)
     }
 
-    public func getAllTags(completion: @escaping ([Tag]) -> Void) {
+    public func getAllModules(completion: @escaping ([Module]) -> Void) {
         Logger.logQueue.async { [self] in
-            onGetAllTags(completion: completion)
+            onGetAllModules(completion: completion)
         }
     }
 
-    private func onGetAllTags(completion: @escaping ([Tag]) -> Void) {
+    private func onGetAllModules(completion: @escaping ([Module]) -> Void) {
         var stmt: OpaquePointer?
-        let sql = "SELECT tag FROM \(tableName) GROUP BY tag"
+        let sql = "SELECT module FROM \(tableName) GROUP BY module"
 
         if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
-            var tags = [Tag]()
+            var modules = [Module]()
 
             while sqlite3_step(stmt) == SQLITE_ROW {
-                tags.append(.init(name: sqlite3_column_string(stmt, 0)))
+                modules.append(.init(name: sqlite3_column_string(stmt, 0)))
             }
 
             sqlite3_finalize(stmt)
-            completion(tags)
+            completion(modules)
         } else {
             logErrorMessage()
         }
