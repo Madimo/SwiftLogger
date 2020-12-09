@@ -237,8 +237,22 @@ extension LogsViewController: UITableViewDataSource, UITableViewDelegate {
 
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
             return UIMenu(title: "", children: [
-                UIAction(title: "Copy", image: UIImage(systemName: "doc.on.doc")) { _ in
+                UIAction(title: "Copy Message", image: UIImage(systemName: "doc.on.doc")) { _ in
                     UIPasteboard.general.string = viewModel.messageText.string
+                },
+                UIAction(title: "Copy Object", image: UIImage(systemName: "doc.on.doc")) { _ in
+                    let encoder = JSONEncoder()
+                    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+                    encoder.dateEncodingStrategy = .iso8601
+
+                    if let logJSON = try? encoder.encode(viewModel.log.log), let string = String(data: logJSON, encoding: .utf8) {
+                        UIPasteboard.general.string = string
+                    }
+                },
+                UIAction(title: "Delete", image: UIImage(systemName: "trash"), attributes: [.destructive]) { [weak self] _ in
+                    self?.presentable.deleteLogs([viewModel.log])
+                    self?.viewModels.remove(at: indexPath.row)
+                    self?.reloadData()
                 },
             ])
         }
