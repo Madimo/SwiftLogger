@@ -11,7 +11,23 @@ import Foundation
 
 public enum Level: Int, Comparable, CustomStringConvertible, Codable, CaseIterable {
 
-    case trace, debug, info, warn, error, fatal
+    /// Designates finer-grained informational events than the DEBUG.
+    case trace
+
+    /// Designates fine-grained informational events that are most useful to debug an application.
+    case debug
+
+    /// Designates informational messages that highlight the progress of the application at coarse-grained level.
+    case info
+
+    /// Designates potentially harmful situations.
+    case warn
+
+    /// Designates error events that might still allow the application to continue running.
+    case error
+
+    /// Designates very severe error events that will presumably lead the application to abort.
+    case fatal
 
     public static func < (lhs: Level, rhs: Level) -> Bool {
         lhs.rawValue < rhs.rawValue
