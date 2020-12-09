@@ -15,6 +15,10 @@ public protocol LogFilter {
 
 final public class AllAcceptLogFilter: LogFilter {
 
+    public init() {
+
+    }
+
     public func contains(_ log: Log) -> Bool {
         true
     }
@@ -59,7 +63,7 @@ final public class ConditionLogFilter: LogFilter {
         guard includeLevels.contains(log.level) else { return false }
         guard includeTags.contains(log.tag) else { return false }
 
-        if let keyword = messageKeyword {
+        if let keyword = messageKeyword, !keyword.isEmpty {
             return log.message.contains(keyword)
         }
 
