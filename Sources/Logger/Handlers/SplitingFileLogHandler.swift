@@ -12,7 +12,6 @@ import Foundation
 public final class SplitingFileLogHandler: LogHandler {
 
     public var identifier: String
-    public var outputLevel = Level.trace
     public var isEnabled = true
     public lazy var filter: LogFilter = AllAcceptLogFilter()
     public let directory: URL

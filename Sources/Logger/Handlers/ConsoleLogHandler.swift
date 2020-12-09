@@ -12,7 +12,6 @@ import Foundation
 public final class ConsoleLogHandler: LogHandler {
 
     public let identifier = "com.Madimo.Logger.ConsoleLogHandler"
-    public var outputLevel = Level.trace
     public var isEnabled = true
     public lazy var filter: LogFilter = AllAcceptLogFilter()
     public lazy var logFormatter: LogFormatter = DefaultLogFormatter()

@@ -12,7 +12,6 @@ import Foundation
 public final class FileLogHandler: LogHandler {
 
     public let identifier: String
-    public var outputLevel = Level.trace
     public var isEnabled = true
     public lazy var filter: LogFilter = AllAcceptLogFilter()
     public lazy var logFormatter: LogFormatter = DefaultLogFormatter()

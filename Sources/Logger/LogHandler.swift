@@ -12,7 +12,6 @@ import Foundation
 public protocol LogHandler {
 
     var identifier: String { get }
-    var outputLevel: Level { get set }
     var isEnabled: Bool { get set }
     var filter: LogFilter { get set }
 

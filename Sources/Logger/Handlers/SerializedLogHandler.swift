@@ -13,7 +13,6 @@ import SQLite3
 public final class SerializedLogHandler: LogHandler {
 
     public var identifier: String
-    public var outputLevel = Level.trace
     public var isEnabled: Bool = true
     public lazy var filter: LogFilter = AllAcceptLogFilter()
     public let fileURL: URL
