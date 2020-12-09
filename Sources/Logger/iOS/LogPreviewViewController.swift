@@ -15,27 +15,22 @@ open class LogsViewController: UIViewController {
 
     private let presentable: LogPresentable
     private var viewModels = [ViewModel]()
-    private lazy var displaying = viewModels
+    private var fetchTask: FetchTask?
+    private var hasMoreData = false
 
     private lazy var tableView: UITableView = {
         let view = UITableView(frame: .zero, style: .plain)
         view.keyboardDismissMode = .interactive
         view.register(LogCell.self, forCellReuseIdentifier: NSStringFromClass(LogCell.self))
-        view.refreshControl = UIRefreshControl()
-        view.refreshControl?.addTarget(
-            self,
-            action: #selector(onRefresh),
-            for: .valueChanged
-        )
         view.dataSource = self
         view.delegate = self
         return view
     }()
 
     private lazy var filterController: FilterViewController = {
-        let controller = FilterViewController(allTags: Set(viewModels.map { $0.log.tag }))
+        let controller = FilterViewController()
         controller.onSelectionChanged = { [weak self] in
-            self?.reloadData()
+            self?.onFetchFirstPage()
         }
         return controller
     }()
@@ -50,6 +45,14 @@ open class LogsViewController: UIViewController {
         return controller
     }()
 
+    private var currentLogFilter: ConditionLogFilter {
+        ConditionLogFilter(
+            messageKeyword: searchController.searchBar.text,
+            includeLevels: Array(filterController.selectedLevels),
+            includeTags: Array(filterController.selectedTags)
+        )
+    }
+
     public init(presentable: LogPresentable) {
         self.presentable = presentable
 
@@ -60,11 +63,16 @@ open class LogsViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
+    deinit {
+        presentable.removeLogListener(self)
+    }
+
     override open func viewDidLoad() {
         super.viewDidLoad()
 
         setupViews()
-        onRefresh()
+        onFetchFirstPage()
+        presentable.addLogListener(self)
 
         NotificationCenter.default.addObserver(
             self,
@@ -112,37 +120,71 @@ open class LogsViewController: UIViewController {
         tableView.scrollIndicatorInsets.bottom = height
     }
 
-    @objc private func onRefresh() {
-        viewModels = presentable.logs.map { ViewModel(log: $0) }
-        reloadData()
+    private func onFetchFirstPage() {
+        fetchTask?.cancel()
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            self?.tableView.refreshControl?.endRefreshing()
+        fetchTask = fetchLogs(before: nil) { [self] logs in
+            hasMoreData = !logs.isEmpty
+            viewModels = logs.map { ViewModel(log: $0) }
+            reloadData()
         }
     }
 
-    private func reloadData() {
-        let filteredViewModels = viewModels
-            .filter {
-                filterController.selectedLevels.contains($0.log.level) &&
-                    filterController.selectedTags.contains($0.log.tag)
+    private func onFetchNextPage() {
+        guard hasMoreData else { return }
+        guard fetchTask == nil || fetchTask!.isCanceledOrFinished else { return }
+
+        fetchTask = fetchLogs(before: viewModels.last?.log) { [self] logs in
+            guard !logs.isEmpty else {
+                hasMoreData = false
+                return
             }
 
-        guard let text = searchController.searchBar.text?.lowercased(), !text.isEmpty else {
-            displaying = filteredViewModels
-            tableView.reloadData()
-            return
+            viewModels += logs.map { ViewModel(log: $0) }
+
+            reloadData()
+        }
+    }
+
+    private func fetchLogs(before: SerializedLog?, completion: @escaping ([SerializedLog]) -> Void) -> FetchTask {
+        let task = FetchTask()
+
+        presentable.getAllTags { tags in
+            DispatchQueue.main.async { [self] in
+                guard !task.isCanceledOrFinished else { return }
+
+                filterController.allTags = tags
+                presentable.getLogs(filter: currentLogFilter, before: before, count: 1000) { logs in
+                    DispatchQueue.main.async {
+                        guard !task.isCanceledOrFinished else { return }
+
+                        task.finish()
+                        completion(logs)
+                    }
+                }
+            }
         }
 
-        displaying = filteredViewModels
-            .filter {
-                $0.log.message.lowercased().contains(text) ||
-                    $0.log.tag.name.lowercased().contains(text) ||
-                    $0.log.file.lowercased().contains(text) ||
-                    $0.log.function.lowercased().contains(text)
-            }
+        return task
+    }
 
+    private func reloadData() {
         tableView.reloadData()
+    }
+
+}
+
+// MARK: LogListener
+
+extension LogsViewController: LogListener {
+
+    public func receive(_ log: SerializedLog) {
+        DispatchQueue.main.async { [self] in
+            if currentLogFilter.contains(log.log) {
+                viewModels.insert(.init(log: log), at: 0)
+                reloadData()
+            }
+        }
     }
 
 }
@@ -151,12 +193,18 @@ open class LogsViewController: UIViewController {
 
 extension LogsViewController: UITableViewDataSource, UITableViewDelegate {
 
+    public func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        if scrollView.contentOffset.y + scrollView.bounds.height > scrollView.contentSize.height * 0.8 {
+            onFetchNextPage()
+        }
+    }
+
     public func numberOfSections(in tableView: UITableView) -> Int {
         1
     }
 
     public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        displaying.count
+        viewModels.count
     }
 
     public func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
@@ -168,24 +216,24 @@ extension LogsViewController: UITableViewDataSource, UITableViewDelegate {
             }
         }()
 
-        return displaying[indexPath.row].height(forContainerWidth: width)
+        return viewModels[indexPath.row].height(forContainerWidth: width)
     }
 
     public func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: NSStringFromClass(LogCell.self), for: indexPath) as! LogCell
-        cell.viewModel = displaying[indexPath.row]
+        cell.viewModel = viewModels[indexPath.row]
         return cell
     }
 
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        displaying[indexPath.row].isExpanded.toggle()
+        viewModels[indexPath.row].isExpanded.toggle()
 
         tableView.reloadRows(at: [[0, indexPath.row]], with: .automatic)
     }
 
     @available(iOS 13.0, *)
     public func tableView(_ tableView: UITableView, contextMenuConfigurationForRowAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
-        let viewModel = displaying[indexPath.row]
+        let viewModel = viewModels[indexPath.row]
 
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
             return UIMenu(title: "", children: [
@@ -218,7 +266,7 @@ extension LogsViewController: UISearchControllerDelegate, UISearchBarDelegate, U
     }
 
     public func updateSearchResults(for searchController: UISearchController) {
-        reloadData()
+        onFetchFirstPage()
     }
 
 }
@@ -229,6 +277,26 @@ extension LogsViewController: UIPopoverPresentationControllerDelegate {
 
     public func adaptivePresentationStyle(for controller: UIPresentationController) -> UIModalPresentationStyle {
         .none
+    }
+
+}
+
+// MARK: -
+
+extension LogsViewController {
+
+    private class FetchTask {
+
+        private(set) var isCanceledOrFinished: Bool = false
+
+        func cancel() {
+            isCanceledOrFinished = true
+        }
+
+        func finish() {
+            isCanceledOrFinished = true
+        }
+
     }
 
 }
@@ -439,8 +507,7 @@ extension LogsViewController {
             ]
         }()
 
-        var id = UUID()
-        var log: Log
+        var log: SerializedLog
         var messageText: NSAttributedString
         var middleText: String
         var levelText: String
@@ -451,10 +518,10 @@ extension LogsViewController {
         var isExpanded = false
         var shouldMaskMessage = false
 
-        init(log: Log) {
+        init(log: SerializedLog) {
             self.log = log
 
-            switch log.level {
+            switch log.log.level {
             case .trace: levelBackgroundColor = .systemGray
             case .info: levelBackgroundColor = .systemPurple
             case .debug: levelBackgroundColor = .systemBlue
@@ -463,14 +530,14 @@ extension LogsViewController {
             case .fatal: levelBackgroundColor = .systemRed
             }
 
-            var message = log.message.trimmingCharacters(in: .whitespacesAndNewlines)
+            var message = log.log.message.trimmingCharacters(in: .whitespacesAndNewlines)
             message = message.isEmpty ? "<Empty>" : message
             messageText = NSAttributedString(string: message, attributes: Self.messageAttributes)
 
-            middleText = "\(log.file):\(log.line) - \(log.function)"
-            levelText = log.level.description
-            dateText = Self.dateFormatter.string(from: log.date)
-            tagText = log.tag == .default ? "" : log.tag.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            middleText = "\(log.log.file):\(log.log.line) - \(log.log.function)"
+            levelText = log.log.level.description
+            dateText = Self.dateFormatter.string(from: log.log.date)
+            tagText = log.log.tag == .default ? "" : log.log.tag.name.trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
         private var containerWidth: CGFloat = 0
@@ -560,25 +627,35 @@ extension LogsViewController {
             }
         }
 
-        private(set) var selectedTags: Set<Tag> = {
-            if let rawTags = UserDefaults.standard.array(forKey: tagsFilterUserDefaultsKey) as? [String] {
-                let tags = Set(rawTags.compactMap { Tag(name: $0) })
-
-                if !tags.isEmpty {
-                    return tags
+        private(set) var selectedTags: Set<Tag> {
+            get {
+                if let rawTags = UserDefaults.standard.array(forKey: Self.tagsFilterUserDefaultsKey) as? [String] {
+                    let tags = Set(rawTags.compactMap { Tag(name: $0) })
+                    return tags.intersection(allTags)
                 }
-            }
 
-            return []
-        }() {
+                return []
+            }
+            set {
+                UserDefaults.standard.set(newValue.map { $0.name }, forKey: Self.tagsFilterUserDefaultsKey)
+            }
+        }
+
+        var allTags: [Tag] = [.default] {
             didSet {
-                UserDefaults.standard.set(selectedTags.map { $0.name }, forKey: Self.tagsFilterUserDefaultsKey)
+                guard allTags != oldValue else { return }
+
+                var tags = Set(allTags)
+                tags.insert(.default)
+
+                allTags = tags.sorted(by: { $0.name < $1.name })
+                selectedTags = tags.union(Set(oldValue))
+
+                tableView.reloadData()
             }
         }
 
         var onSelectionChanged: (() -> Void)?
-
-        private let allTags: [Tag]
 
         private(set) lazy var tableView: UITableView = {
             let view = UITableView(frame: .zero, style: .grouped)
@@ -591,20 +668,6 @@ extension LogsViewController {
             view.delegate = self
             return view
         }()
-
-        init(allTags: Set<Tag>) {
-            self.allTags = allTags.sorted(by: { $0.name < $1.name })
-
-            if selectedTags.isEmpty {
-                selectedTags = allTags
-            }
-
-            super.init(nibName: nil, bundle: nil)
-        }
-
-        required init?(coder: NSCoder) {
-            fatalError("init(coder:) has not been implemented")
-        }
 
         override func viewDidLoad() {
             super.viewDidLoad()

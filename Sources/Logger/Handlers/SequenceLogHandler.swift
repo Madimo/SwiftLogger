@@ -9,7 +9,7 @@
 
 import Foundation
 
-public final class SequenceLogHandler: LogHandler, LogPresentable {
+public final class SequenceLogHandler: LogHandler {
 
     public var identifier: String
     public var outputLevel = Level.trace

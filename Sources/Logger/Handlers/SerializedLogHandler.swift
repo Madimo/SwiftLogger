@@ -10,7 +10,7 @@
 import Foundation
 import SQLite3
 
-public final class SerializedLogHandler: LogHandler, LogPresentable {
+public final class SerializedLogHandler: LogHandler {
 
     public var identifier: String
     public var outputLevel = Level.trace
@@ -27,59 +27,7 @@ public final class SerializedLogHandler: LogHandler, LogPresentable {
     private let tableName = "Logs"
     private var db: OpaquePointer?
     private var enabled = true
-
-    public var logs: [Log] {
-        guard let db = db else { return [] }
-
-        let count: Int = {
-            var stmt: OpaquePointer?
-
-            if sqlite3_prepare_v2(db, "SELECT COUNT(*) FROM \(tableName)", -1, &stmt, nil) == SQLITE_OK {
-                var count = 0
-                if sqlite3_step(stmt) == SQLITE_ROW {
-                    count = sqlite3_column_int(stmt, 0)
-                }
-
-                sqlite3_finalize(stmt)
-                return count
-            } else {
-                logErrorMessage()
-            }
-
-            return 0
-        }()
-
-        var logs = [Log]()
-        if count > 0 {
-            logs.reserveCapacity(count)
-        }
-
-        var stmt: OpaquePointer?
-        let sql = """
-            SELECT message, date, level, tag, file, line, column, function FROM \(tableName) ORDER BY id DESC
-            """
-
-        if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
-            while sqlite3_step(stmt) == SQLITE_ROW {
-                logs.append(Log(
-                    message: sqlite3_column_string(stmt, 0),
-                    date: Date(timeIntervalSince1970: sqlite3_column_double(stmt, 1)),
-                    level: Level(rawValue: sqlite3_column_int(stmt, 2))!,
-                    tag: Tag(name: sqlite3_column_string(stmt, 3)),
-                    file: sqlite3_column_string(stmt, 4),
-                    line: sqlite3_column_int(stmt, 5),
-                    column: sqlite3_column_int(stmt, 6),
-                    function: sqlite3_column_string(stmt, 7)
-                ))
-            }
-
-            sqlite3_finalize(stmt)
-        } else {
-            logErrorMessage()
-        }
-
-        return logs
-    }
+    private var logListeners = [WeakBox<AnyObject>]()
 
     public init(identifier: String = "com.Madimo.Logger.SerializedLogHandler", fileURL: URL) throws {
         self.identifier = identifier
@@ -93,8 +41,8 @@ public final class SerializedLogHandler: LogHandler, LogPresentable {
     }
 
     public func write(_ log: Log) {
-        Logger.logQueue.async {
-            self.insert(log)
+        Logger.logQueue.async { [self] in
+            insert(log)
         }
     }
 
@@ -185,11 +133,207 @@ public final class SerializedLogHandler: LogHandler, LogPresentable {
         }
 
         sqlite3_finalize(stmt)
+
+        let serializedLog = SerializedLog(id: Int(sqlite3_last_insert_rowid(db)), log: log)
+        logListeners
+            .compactMap { $0.value as? LogListener }
+            .forEach {
+                $0.receive(serializedLog)
+            }
+    }
+
+    public func deleteOutdatedLogs() {
+        Logger.logQueue.async { [self] in
+            onDeleteOutdatedLogs()
+        }
+    }
+
+    private func onDeleteOutdatedLogs() {
+        guard let db = db else { return }
+
+        let sql = """
+            DELETE FROM \(tableName) WHERE date < \(outdatedLogDate.timeIntervalSince1970)
+            """
+
+        if sqlite3_exec(db, sql, nil, nil, nil) != SQLITE_OK {
+            logErrorMessage( )
+        }
+    }
+
+    @discardableResult
+    private func logErrorMessage() -> String {
+        guard let db = db else { return "" }
+
+        let message = String(cString: sqlite3_errmsg(db))
+        Logger.default.error(message)
+        return message
+    }
+
+}
+
+// MARK: - LogPresentable
+
+extension SerializedLogHandler: LogPresentable {
+
+    public func addLogListener(_ listener: LogListener) {
+        logListeners.append(.init(value: listener))
+    }
+
+    public func removeLogListener(_ listener: LogListener) {
+        logListeners.removeAll(where: { $0.value == nil || $0.value === listener })
+    }
+
+    public func getLogCount(_ completion: @escaping (Int) -> Void) {
+        Logger.logQueue.async { [self] in
+            onGetLogCount(completion)
+        }
+    }
+
+    public func onGetLogCount(_ completion: @escaping (Int) -> Void) {
+        guard let db = db else { return }
+
+        var stmt: OpaquePointer?
+
+        if sqlite3_prepare_v2(db, "SELECT COUNT(*) FROM \(tableName)", -1, &stmt, nil) == SQLITE_OK {
+            var count = 0
+            if sqlite3_step(stmt) == SQLITE_ROW {
+                count = sqlite3_column_int(stmt, 0)
+            }
+
+            sqlite3_finalize(stmt)
+            completion(count)
+        } else {
+            logErrorMessage()
+        }
+    }
+
+    public func getLogs(filter: ConditionLogFilter, before: SerializedLog?, count: Int, completion: @escaping ([SerializedLog]) -> Void) {
+        Logger.logQueue.async { [self] in
+            onGetLogs(filter: filter, before: before, count: count, completion: completion)
+        }
+    }
+
+    private func onGetLogs(filter: ConditionLogFilter, before: SerializedLog?, count: Int, completion: @escaping ([SerializedLog]) -> Void) {
+        guard let db = db else { return }
+
+        guard !filter.includeLevels.isEmpty else {
+            completion([])
+            return
+        }
+
+        guard !filter.includeTags.isEmpty else {
+            completion([])
+            return
+        }
+
+        var logs = [SerializedLog]()
+
+        var whereExpression = ""
+        whereExpression += "level IN (\(filter.includeLevels.map { String($0.rawValue) }.joined(separator: ",")))"
+        whereExpression += " AND tag IN (\(filter.includeTags.map { _ in "?" }.joined(separator: ",")))"
+
+        if let messageKeyword = filter.messageKeyword, !messageKeyword.isEmpty {
+            whereExpression += " AND message LIKE ?"
+        }
+
+        if let before = before {
+            whereExpression += " AND id < \(before.id)"
+        }
+
+        var stmt: OpaquePointer?
+        let sql = """
+            SELECT id, message, date, level, tag, file, line, column, function
+            FROM \(tableName)
+            WHERE \(whereExpression)
+            ORDER BY id DESC
+            LIMIT \(count)
+            """
+
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            logErrorMessage()
+            return
+        }
+
+        var parameterIndex: Int32 = 1
+
+        filter.includeTags.forEach {
+            sqlite3_bind_string(stmt, parameterIndex, $0.name)
+            parameterIndex += 1
+        }
+
+        if let messageKeyword = filter.messageKeyword, !messageKeyword.isEmpty {
+            sqlite3_bind_string(stmt, parameterIndex, "%\(messageKeyword)%")
+            parameterIndex += 1
+        }
+
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            logs.append(
+                SerializedLog(
+                    id: sqlite3_column_int(stmt, 0),
+                    log: Log(
+                        message: sqlite3_column_string(stmt, 1),
+                        date: Date(timeIntervalSince1970: sqlite3_column_double(stmt, 2)),
+                        level: Level(rawValue: sqlite3_column_int(stmt, 3))!,
+                        tag: Tag(name: sqlite3_column_string(stmt, 4)),
+                        file: sqlite3_column_string(stmt, 5),
+                        line: sqlite3_column_int(stmt, 6),
+                        column: sqlite3_column_int(stmt, 7),
+                        function: sqlite3_column_string(stmt, 8)
+                    )
+                )
+            )
+        }
+
+        sqlite3_finalize(stmt)
+        completion(logs)
+    }
+
+    public func getAllTags(completion: @escaping ([Tag]) -> Void) {
+        Logger.logQueue.async { [self] in
+            onGetAllTags(completion: completion)
+        }
+    }
+
+    private func onGetAllTags(completion: @escaping ([Tag]) -> Void) {
+        var stmt: OpaquePointer?
+        let sql = "SELECT tag FROM \(tableName) GROUP BY tag"
+
+        if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
+            var tags = [Tag]()
+
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                tags.append(.init(name: sqlite3_column_string(stmt, 0)))
+            }
+
+            sqlite3_finalize(stmt)
+            completion(tags)
+        } else {
+            logErrorMessage()
+        }
+    }
+
+    public func deleteLogs(_ logs: [SerializedLog]) {
+        Logger.logQueue.async { [self] in
+            onDeleteLogs(logs)
+        }
+    }
+
+    private func onDeleteLogs(_ logs: [SerializedLog]) {
+        guard let db = db else { return }
+
+        let sql = """
+            DELETE FROM \(tableName)
+            WHERE id IN (\(logs.map { String($0.id) }.joined(separator: ",")))
+            """
+
+        if sqlite3_exec(db, sql, nil, nil, nil) != SQLITE_OK {
+            logErrorMessage()
+        }
     }
 
     public func deleteAllLogs() {
-        Logger.logQueue.async { [weak self] in
-            self?.onDeleteAllLogs()
+        Logger.logQueue.async { [self] in
+            onDeleteAllLogs()
         }
     }
 
@@ -203,33 +347,6 @@ public final class SerializedLogHandler: LogHandler, LogPresentable {
         if sqlite3_exec(db, sql, nil, nil, nil) != SQLITE_OK {
             logErrorMessage()
         }
-    }
-
-    public func deleteOutdatedLogs() {
-        Logger.logQueue.async { [weak self] in
-            self?.onDeleteOutdatedLogs()
-        }
-    }
-
-    private func onDeleteOutdatedLogs() {
-        guard let db = db else { return }
-
-        let sql = """
-            DELETE FROM \(tableName) WHERE date < \(outdatedLogDate.timeIntervalSince1970)
-            """
-
-        if sqlite3_exec(db, sql, nil, nil, nil) != SQLITE_OK {
-            logErrorMessage()
-        }
-    }
-
-    @discardableResult
-    private func logErrorMessage() -> String {
-        guard let db = db else { return "" }
-
-        let message = String(cString: sqlite3_errmsg(db))
-        Logger.default.error(message)
-        return message
     }
 
 }
@@ -255,7 +372,7 @@ extension SerializedLogHandler {
         #if arch(x86_64) || arch(arm64)
         return sqlite3_bind_int64(stmt, bindIndex, Int64(value))
         #else
-        return sqlite3_bind_int32(stmt, bindIndex, Int32(value))
+        return SQLite3.sqlite3_bind_int(stmt, bindIndex, Int32(value))
         #endif
     }
 

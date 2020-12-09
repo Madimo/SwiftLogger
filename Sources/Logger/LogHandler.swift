@@ -19,9 +19,3 @@ public protocol LogHandler {
     func write(_ log: Log)
 
 }
-
-public protocol LogPresentable {
-
-    var logs: [Log] { get }
-
-}

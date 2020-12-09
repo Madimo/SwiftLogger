@@ -245,68 +245,196 @@ final class LoggerTests: XCTestCase {
     }
 
     func testSerializedLogHandler() throws {
+        var expectation = XCTestExpectation()
         let logger = Logger()
         let fileName = UUID().uuidString + ".db"
         let fileURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(fileName)
         let serializedLogHandler = try SerializedLogHandler(fileURL: fileURL)
         logger.add(handler: serializedLogHandler)
 
-        XCTAssertTrue(serializedLogHandler.logs.isEmpty)
-
         do {
-            let log = logger.debug("This is a log message.")
-            waitLogQueue()
+            expectation = .init()
 
-            XCTAssertEqual(serializedLogHandler.logs.count, 1)
-            XCTAssertEqual(serializedLogHandler.logs[0].message, log.message)
-            XCTAssertEqual(Int(serializedLogHandler.logs[0].date.timeIntervalSince1970), Int(log.date.timeIntervalSince1970))
-            XCTAssertEqual(serializedLogHandler.logs[0].level, log.level)
-            XCTAssertEqual(serializedLogHandler.logs[0].tag, log.tag)
-            XCTAssertEqual(serializedLogHandler.logs[0].file, log.file)
-            XCTAssertEqual(serializedLogHandler.logs[0].line, log.line)
-            XCTAssertEqual(serializedLogHandler.logs[0].column, log.column)
-            XCTAssertEqual(serializedLogHandler.logs[0].function, log.function)
+            serializedLogHandler.getLogs(
+                filter: ConditionLogFilter(),
+                before: nil,
+                count: 20,
+                completion: {
+                    XCTAssertTrue($0.isEmpty)
+                    expectation.fulfill()
+                }
+            )
+
+            wait(for: [expectation], timeout: 2)
         }
 
         do {
-            let log = logger.info("This is another\n\nlog message.")
+            expectation = .init()
+
+            let log = logger.debug("🎉 This is a 'BIG' log message.")
             waitLogQueue()
 
-            XCTAssertEqual(serializedLogHandler.logs[0].message, log.message)
+            serializedLogHandler.getLogs(
+                filter: ConditionLogFilter(
+                    messageKeyword: nil,
+                    includeLevels: Level.allCases,
+                    includeTags: [.default]
+                ),
+                before: nil,
+                count: 20,
+                completion: { logs in
+                    XCTAssertEqual(logs.count, 1)
+                    XCTAssertEqual(logs[0].id, 1)
+                    XCTAssertEqual(logs[0].log, log)
+
+                    expectation.fulfill()
+                }
+            )
+
+            wait(for: [expectation], timeout: 2)
         }
 
         do {
-            let log = logger.info("🎉 This is a log message contains Emoji 😄.")
+            let tag1 = Tag(name: "Tag1")
+            let tag2 = Tag(name: "Tag2")
+
+            logger.debug("[Hit] This should be filtered.", tag: tag1)
+            logger.error("[Hit] This should be filtered.")
+            logger.error("This should be filtered.", tag: tag1)
+            let log0 = logger.error("[Hit] This should not be filtered.", tag: tag1)
+            let log1 = logger.fatal("[Hit] This should not be filtered.", tag: tag2)
+
+            expectation = .init()
+
+            serializedLogHandler.getLogs(
+                filter: ConditionLogFilter(
+                    messageKeyword: "[Hit]",
+                    includeLevels: [.error, .fatal],
+                    includeTags: [tag1, tag2]
+                ),
+                before: nil,
+                count: 20,
+                completion: { logs in
+                    XCTAssertEqual(logs.count, 2)
+
+                    XCTAssertEqual(logs[0].id, 6)
+                    XCTAssertEqual(logs[0].log, log1)
+
+                    XCTAssertEqual(logs[1].id, 5)
+                    XCTAssertEqual(logs[1].log, log0)
+
+                    expectation.fulfill()
+                }
+            )
+
+            wait(for: [expectation], timeout: 2)
+
+            expectation = .init()
+
+            serializedLogHandler.getLogs(
+                filter: ConditionLogFilter(
+                    messageKeyword: "[Hit]",
+                    includeLevels: [.error, .fatal],
+                    includeTags: [tag1, tag2]
+                ),
+                before: nil,
+                count: 1,
+                completion: { logs in
+                    XCTAssertEqual(logs.count, 1)
+
+                    XCTAssertEqual(logs[0].id, 6)
+                    XCTAssertEqual(logs[0].log, log1)
+
+                    expectation.fulfill()
+                }
+            )
+
+            wait(for: [expectation], timeout: 2)
+
+            var serializedLog: SerializedLog?
+            expectation = .init()
+
+            serializedLogHandler.getLogs(
+                filter: ConditionLogFilter(
+                    messageKeyword: "[Hit]",
+                    includeLevels: [.error, .fatal],
+                    includeTags: [tag1, tag2]
+                ),
+                before: SerializedLog(id: 6, log: log1),
+                count: 20,
+                completion: { logs in
+                    XCTAssertEqual(logs.count, 1)
+
+                    XCTAssertEqual(logs[0].id, 5)
+                    XCTAssertEqual(logs[0].log, log0)
+                    serializedLog = logs[0]
+
+                    expectation.fulfill()
+                }
+            )
+
+            wait(for: [expectation], timeout: 2)
+
+            serializedLogHandler.deleteLogs([serializedLog!])
             waitLogQueue()
 
-            XCTAssertEqual(serializedLogHandler.logs[0].message, log.message)
+            expectation = .init()
+
+            serializedLogHandler.getLogCount {
+                XCTAssertEqual($0, 5)
+                expectation.fulfill()
+            }
+
+            wait(for: [expectation], timeout: 2)
         }
 
         do {
-            let log = logger.info("#//This is a log message contains '''?\"./*")
-            waitLogQueue()
+            expectation = .init()
 
-            XCTAssertEqual(serializedLogHandler.logs[0].message, log.message)
+            var receivedLog: SerializedLog?
+            let logListener = TestLogListener {
+                receivedLog = $0
+                expectation.fulfill()
+            }
+            serializedLogHandler.addLogListener(logListener)
+
+            let log = logger.info("This is a log.")
+            waitLogQueue()
+            wait(for: [expectation], timeout: 2)
+
+            XCTAssertEqual(receivedLog!.id, 7)
+            XCTAssertEqual(receivedLog!.log, log)
         }
 
         do {
-            let log = logger.info("This is a log message contains 中文")
+            serializedLogHandler.deleteAllLogs()
             waitLogQueue()
 
-            XCTAssertEqual(serializedLogHandler.logs[0].message, log.message)
+            expectation = .init()
+
+            serializedLogHandler.getLogCount {
+                XCTAssertEqual($0, 0)
+                expectation.fulfill()
+            }
+
+            wait(for: [expectation], timeout: 2)
         }
 
-        serializedLogHandler.deleteAllLogs()
-        waitLogQueue()
-        XCTAssertTrue(serializedLogHandler.logs.isEmpty)
+        do {
+            try serializedLogHandler.close()
+            logger.info("This is another log message.")
+            waitLogQueue()
+            try serializedLogHandler.open()
 
-        try serializedLogHandler.close()
-        XCTAssertTrue(serializedLogHandler.logs.isEmpty)
+            expectation = .init()
 
-        logger.info("This is another log message.")
-        waitLogQueue()
-        try serializedLogHandler.open()
-        XCTAssertTrue(serializedLogHandler.logs.isEmpty)
+            serializedLogHandler.getLogCount {
+                XCTAssertEqual($0, 0)
+                expectation.fulfill()
+            }
+
+            wait(for: [expectation], timeout: 2)
+        }
     }
 
     func testFileLogHandler() throws {
