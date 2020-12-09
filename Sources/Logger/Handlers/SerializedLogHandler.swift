@@ -349,6 +349,33 @@ extension SerializedLogHandler: LogPresentable {
         }
     }
 
+    public func export(completion: @escaping (URL) -> Void) {
+        Logger.logQueue.async { [self] in
+            onExport(completion: completion)
+        }
+    }
+
+    private func onExport(completion: @escaping (URL) -> Void) {
+        guard let db = db else { return }
+
+        if sqlite3_db_cacheflush(db) != SQLITE_OK {
+            logErrorMessage()
+        }
+
+        let formatter = DateFormatter()
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyyMMddHHmmss"
+
+        let date = formatter.string(from: Date())
+        let url = FileManager.default
+            .temporaryDirectory
+            .appendingPathComponent("Logs-\(date).db")
+
+        try? FileManager.default.copyItem(at: fileURL, to: url)
+
+        completion(url)
+    }
+
 }
 
 // MARK: - SQLite3

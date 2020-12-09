@@ -45,6 +45,15 @@ open class LogsViewController: UIViewController {
         return controller
     }()
 
+    private lazy var shareItem: UIBarButtonItem = {
+        let item = UIBarButtonItem(
+            barButtonSystemItem: .action,
+            target: self,
+            action: #selector(onShare)
+        )
+        return item
+    }()
+
     private var currentLogFilter: ConditionLogFilter {
         ConditionLogFilter(
             messageKeyword: searchController.searchBar.text,
@@ -84,6 +93,7 @@ open class LogsViewController: UIViewController {
 
     private func setupViews() {
         title = "Logs"
+        navigationItem.rightBarButtonItem = shareItem
 
         view.addSubview(tableView)
 
@@ -170,6 +180,15 @@ open class LogsViewController: UIViewController {
 
     private func reloadData() {
         tableView.reloadData()
+    }
+
+    @objc private func onShare() {
+        presentable.export { [weak self] url in
+            DispatchQueue.main.async {
+                let vc = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+                self?.present(vc, animated: true, completion: nil)
+            }
+        }
     }
 
 }

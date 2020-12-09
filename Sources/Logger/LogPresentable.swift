@@ -21,5 +21,6 @@ public protocol LogPresentable {
     func getAllTags(completion: @escaping ([Tag]) -> Void)
     func deleteLogs(_ logs: [SerializedLog])
     func deleteAllLogs()
+    func export(completion: @escaping (URL) -> Void)
 
 }
