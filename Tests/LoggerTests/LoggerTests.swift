@@ -113,8 +113,8 @@ final class LoggerTests: XCTestCase {
         logger.info(message)
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .info)
 
-        logger.warning(message)
-        XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .warning)
+        logger.warn(message)
+        XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .warn)
 
         logger.error(message)
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .error)
@@ -126,7 +126,7 @@ final class LoggerTests: XCTestCase {
     func testOutputLevel() {
         let logger = Logger()
         let testHandler = TestLogHandler()
-        testHandler.outputLevel = .warning
+        testHandler.outputLevel = .warn
         logger.add(handler: testHandler)
 
         let message = "This is a log message."
@@ -140,8 +140,8 @@ final class LoggerTests: XCTestCase {
         logger.info(message)
         XCTAssertNil(testHandler.lastLog)
 
-        logger.warning(message)
-        XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .warning)
+        logger.warn(message)
+        XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .warn)
 
         logger.error(message)
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .error)

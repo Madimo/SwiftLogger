@@ -558,7 +558,7 @@ extension LogsViewController {
             case .trace: levelBackgroundColor = .systemGray
             case .info: levelBackgroundColor = .systemPurple
             case .debug: levelBackgroundColor = .systemBlue
-            case .warning: levelBackgroundColor = .systemOrange
+            case .warn: levelBackgroundColor = .systemOrange
             case .error: levelBackgroundColor = .systemPink
             case .fatal: levelBackgroundColor = .systemRed
             }

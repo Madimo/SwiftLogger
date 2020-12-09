@@ -52,6 +52,11 @@ public final class Logger {
     }
 
     @discardableResult
+    public func trace(_ item: Any, tag: Tag = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
+        log(item, level: .trace, tag: tag, file: file, line: line, column: column, function: function)
+    }
+
+    @discardableResult
     public func info(_ item: Any, tag: Tag = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
         log(item, level: .info, tag: tag, file: file, line: line, column: column, function: function)
     }
@@ -62,8 +67,8 @@ public final class Logger {
     }
 
     @discardableResult
-    public func warning(_ item: Any, tag: Tag = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
-        log(item, level: .warning, tag: tag, file: file, line: line, column: column, function: function)
+    public func warn(_ item: Any, tag: Tag = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
+        log(item, level: .warn, tag: tag, file: file, line: line, column: column, function: function)
     }
 
     @discardableResult
@@ -74,11 +79,6 @@ public final class Logger {
     @discardableResult
     public func fatal(_ item: Any, tag: Tag = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
         log(item, level: .fatal, tag: tag, file: file, line: line, column: column, function: function)
-    }
-
-    @discardableResult
-    public func trace(_ item: Any, tag: Tag = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
-        log(item, level: .trace, tag: tag, file: file, line: line, column: column, function: function)
     }
 
     public func add(handler: LogHandler) {
