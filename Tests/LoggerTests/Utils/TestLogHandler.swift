@@ -13,7 +13,6 @@ import Foundation
 final class TestLogHandler: LogHandler {
 
     var identifier: String
-    var outputLevel = Level.trace
     var isEnabled = true
     public lazy var filter: LogFilter = AllAcceptLogFilter()
 

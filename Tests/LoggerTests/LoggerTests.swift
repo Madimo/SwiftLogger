@@ -123,33 +123,6 @@ final class LoggerTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .fatal)
     }
 
-    func testOutputLevel() {
-        let logger = Logger()
-        let testHandler = TestLogHandler()
-        testHandler.outputLevel = .warn
-        logger.add(handler: testHandler)
-
-        let message = "This is a log message."
-
-        logger.trace(message)
-        XCTAssertNil(testHandler.lastLog)
-
-        logger.debug(message)
-        XCTAssertNil(testHandler.lastLog)
-
-        logger.info(message)
-        XCTAssertNil(testHandler.lastLog)
-
-        logger.warn(message)
-        XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .warn)
-
-        logger.error(message)
-        XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .error)
-
-        logger.fatal(message)
-        XCTAssertEqual(try XCTUnwrap(testHandler.lastLog?.level), .fatal)
-    }
-
     func testLoggerEnabled() {
         let logger = Logger()
         logger.isEnabled = false
@@ -189,7 +162,7 @@ final class LoggerTests: XCTestCase {
         let testHandler = TestLogHandler()
         testHandler.filter = ConditionLogFilter(
             messageKeyword: "test",
-            includeLevels: [.error, .warning],
+            includeLevels: [.error, .warn],
             includeModules: [module]
         )
         logger.add(handler: testHandler)
@@ -518,7 +491,6 @@ final class LoggerTests: XCTestCase {
         ("testAddAndRemoveLogHandler", testAddAndRemoveLogHandler),
         ("testLog", testLog),
         ("testLogLevel", testLogLevel),
-        ("testOutputLevel", testOutputLevel),
         ("testLoggerEnabled", testLoggerEnabled),
         ("testLogHandlerEnabled", testLogHandlerEnabled),
         ("testGeneralLogFilter", testGeneralLogFilter),
