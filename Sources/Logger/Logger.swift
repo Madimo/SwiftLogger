@@ -39,10 +39,19 @@ public final class Logger {
     }
 
     @discardableResult
-    public func log(_ item: Any, level: Level, module: Module = .default, file: String = #file, line: Int = #line, column: Int = #column, function: String = #function) -> Log {
+    public func log(
+        _ item: Any,
+        level: Level,
+        module: Module = .default,
+        date: Date = Date(),
+        file: String = #file,
+        line: Int = #line,
+        column: Int = #column,
+        function: String = #function
+    ) -> Log {
         log(.init(
             message: String(describing: item),
-            date: Date(),
+            date: date,
             level: level,
             module: module,
             file: (file as NSString).lastPathComponent,

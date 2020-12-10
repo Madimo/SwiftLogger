@@ -43,6 +43,22 @@ final public class GeneralLogFilter: LogFilter {
 
 // MARK: -
 
+final public class MinAcceptLevelLogFilter: LogFilter {
+
+    private let minAcceptLevel: Level
+
+    public init(_ minAcceptLevel: Level) {
+        self.minAcceptLevel = minAcceptLevel
+    }
+
+    public func contains(_ log: Log) -> Bool {
+        log.level >= minAcceptLevel
+    }
+
+}
+
+// MARK: -
+
 final public class ConditionLogFilter: LogFilter {
 
     public var messageKeyword: String?
