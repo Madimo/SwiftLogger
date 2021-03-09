@@ -62,10 +62,17 @@ open class LogsViewController: UIViewController {
         )
     }
 
-    public init(presentable: LogPresentable) {
+    public init(presentable: LogPresentable, customLogFilter: ConditionLogFilter? = nil) {
         self.presentable = presentable
-
         super.init(nibName: nil, bundle: nil)
+
+        if let customLogFilter = customLogFilter {
+            searchController.searchBar.text = customLogFilter.messageKeyword
+            filterController.isSerializationEnabled = false
+            filterController.selectedLevels = Set(customLogFilter.includeLevels)
+            filterController.selectedModules = Set(customLogFilter.includeModules)
+            filterController.reloadData()
+        }
     }
 
     required public init?(coder: NSCoder) {
@@ -590,11 +597,11 @@ extension LogsViewController {
                 }
             }
 
-            caculateHeight(forContainerWidth: width)
+            calculateHeight(forContainerWidth: width)
             return height(forContainerWidth: width)
         }
 
-        private func caculateHeight(forContainerWidth width: CGFloat) {
+        private func calculateHeight(forContainerWidth width: CGFloat) {
             let expendedMessageHeight = ceil(messageText.boundingRect(
                     with: CGSize(width: width - 32, height: .infinity),
                     options: [.usesFontLeading, .usesLineFragmentOrigin],
@@ -644,7 +651,7 @@ extension LogsViewController {
         private static let levelsFilterUserDefaultsKey = "com.Madimo.SwiftLogger.LogsViewController.Filter.Levels"
         private static let modulesFilterUserDefaultsKey = "com.Madimo.SwiftLogger.LogsViewController.Filter.Modules"
 
-        private(set) var selectedLevels: Set<Level> = {
+        var selectedLevels: Set<Level> = {
             if let rawLevels = UserDefaults.standard.array(forKey: levelsFilterUserDefaultsKey) as? [Int] {
                 let levels = Set(rawLevels.compactMap { Level(rawValue: $0) })
 
@@ -656,11 +663,15 @@ extension LogsViewController {
             return Set(Level.allCases)
         }() {
             didSet {
-                UserDefaults.standard.set(selectedLevels.map { $0.rawValue }, forKey: Self.levelsFilterUserDefaultsKey)
+                if isSerializationEnabled {
+                    UserDefaults.standard.set(selectedLevels.map { $0.rawValue }, forKey: Self.levelsFilterUserDefaultsKey)
+                }
+
+                reloadData()
             }
         }
 
-        private(set) var selectedModules: Set<Module> {
+        var selectedModules: Set<Module> {
             get {
                 if let rawModules = UserDefaults.standard.array(forKey: Self.modulesFilterUserDefaultsKey) as? [String] {
                     let modules = Set(rawModules.compactMap { Module(name: $0) })
@@ -670,7 +681,9 @@ extension LogsViewController {
                 return []
             }
             set {
-                UserDefaults.standard.set(newValue.map { $0.name }, forKey: Self.modulesFilterUserDefaultsKey)
+                if isSerializationEnabled {
+                    UserDefaults.standard.set(newValue.map { $0.name }, forKey: Self.modulesFilterUserDefaultsKey)
+                }
             }
         }
 
@@ -683,11 +696,10 @@ extension LogsViewController {
 
                 allModules = modules.sorted(by: { $0.name < $1.name })
                 selectedModules = modules.union(Set(oldValue))
-
-                tableView.reloadData()
             }
         }
 
+        var isSerializationEnabled = true
         var onSelectionChanged: (() -> Void)?
 
         private(set) lazy var tableView: UITableView = {
@@ -732,6 +744,12 @@ extension LogsViewController {
                 tableView.rightAnchor.constraint(equalTo: view.rightAnchor),
                 tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
             ])
+
+            reloadData()
+        }
+
+        func reloadData() {
+            tableView.reloadData()
         }
 
         func numberOfSections(in tableView: UITableView) -> Int {
