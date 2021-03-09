@@ -151,6 +151,29 @@ final class LoggerTests: XCTestCase {
         XCTAssertNil(testHandler.lastLog)
     }
 
+    func testSubLogger() throws {
+        let logger = Logger()
+        let testHandler = TestLogHandler()
+        logger.add(handler: testHandler)
+
+        let defaultLevel = Level.trace
+        let module = Module(name: "SubLogger")
+        let subLogger = logger.getSubLogger(
+            availableLevels: [.error],
+            defaultLevel: defaultLevel,
+            module: module
+        )
+
+        let message = "A log from SubLogger."
+        subLogger.debug(message)
+        waitLogQueue()
+
+        let lastLog = try XCTUnwrap(testHandler.lastLog)
+        XCTAssertEqual(lastLog.message, message)
+        XCTAssertEqual(lastLog.level, defaultLevel)
+        XCTAssertEqual(lastLog.module, module)
+    }
+
     func testGeneralLogFilter() {
         let logger = Logger()
         let testHandler = TestLogHandler()
