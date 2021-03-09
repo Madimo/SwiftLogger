@@ -35,7 +35,7 @@ public final class SplitingFileLogHandler: LogHandler {
     private var fileLogHandler: FileLogHandler?
     private var enabled = true
 
-    init(identifier: String = "com.Madimo.Logger.SplitingFileLogHandler",
+    init(identifier: String = "com.Madimo.SwiftLogger.SplitingFileLogHandler",
          directory: URL,
          fileNameFormatter: DateFormatter? = nil,
          filePathExtension: String = "log",

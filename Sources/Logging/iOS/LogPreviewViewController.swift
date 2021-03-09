@@ -641,8 +641,8 @@ extension LogsViewController {
 
     private class FilterViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
 
-        private static let levelsFilterUserDefaultsKey = "com.Madimo.Logger.LogsViewController.Filter.Levels"
-        private static let modulesFilterUserDefaultsKey = "com.Madimo.Logger.LogsViewController.Filter.Modules"
+        private static let levelsFilterUserDefaultsKey = "com.Madimo.SwiftLogger.LogsViewController.Filter.Levels"
+        private static let modulesFilterUserDefaultsKey = "com.Madimo.SwiftLogger.LogsViewController.Filter.Modules"
 
         private(set) var selectedLevels: Set<Level> = {
             if let rawLevels = UserDefaults.standard.array(forKey: levelsFilterUserDefaultsKey) as? [Int] {

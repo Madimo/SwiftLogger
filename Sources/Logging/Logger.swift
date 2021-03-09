@@ -11,7 +11,7 @@ import Foundation
 
 public final class Logger: LoggerInterface {
 
-    static let logQueue = DispatchQueue(label: "com.Madimo.Logger.logQueue", qos: .utility)
+    static let logQueue = DispatchQueue(label: "com.Madimo.SwiftLogger.logQueue", qos: .utility)
 
     public let identifier: String
     public var isEnabled = true
@@ -19,7 +19,7 @@ public final class Logger: LoggerInterface {
     public private(set) var handlers = [LogHandler]()
     public private(set) var triggers = [LogTrigger]()
 
-    public init(identifier: String = "com.Madimo.Logger") {
+    public init(identifier: String = "com.Madimo.SwiftLogger.Logger") {
         self.identifier = identifier
     }
 
@@ -80,7 +80,7 @@ public final class Logger: LoggerInterface {
 extension Logger {
 
     static var `default`: Logger = {
-        let logger = Logger(identifier: "com.Madimo.Logger.Default")
+        let logger = Logger(identifier: "com.Madimo.SwiftLogger.Default")
         logger.add(handler: ConsoleLogHandler())
         return logger
     }()

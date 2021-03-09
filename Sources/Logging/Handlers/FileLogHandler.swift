@@ -24,7 +24,7 @@ public final class FileLogHandler: LogHandler {
     private var fileHandle: FileHandle?
     private var enabled = true
 
-    public init(identifier: String = "com.Madimo.Logger.FileLogHandler", fileURL: URL) throws {
+    public init(identifier: String = "com.Madimo.SwiftLogger.FileLogHandler", fileURL: URL) throws {
         self.identifier = identifier
         self.fileURL = fileURL
 

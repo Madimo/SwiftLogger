@@ -17,7 +17,7 @@ public final class SequenceLogHandler: LogHandler {
 
     public private(set) var logs = [Log]()
 
-    public init(identifier: String = "com.Madimo.Logger.SequenceLogHandler") {
+    public init(identifier: String = "com.Madimo.SwiftLogger.SequenceLogHandler") {
         self.identifier = identifier
     }
 

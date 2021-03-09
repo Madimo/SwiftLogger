@@ -29,7 +29,7 @@ public final class ConsoleLogHandler: LogHandler {
         return formatter
     }()
 
-    public init(identifier: String = "com.Madimo.Logger.ConsoleLogHandler") {
+    public init(identifier: String = "com.Madimo.SwiftLogger.ConsoleLogHandler") {
         self.identifier = identifier
     }
 

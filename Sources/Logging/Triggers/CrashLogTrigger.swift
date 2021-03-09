@@ -12,7 +12,7 @@ import Foundation
 public final class CrashLogTrigger: LogTrigger {
 
     public static let shared = CrashLogTrigger()
-    public let identifier = "com.Madimo.Logger.CrashLogTrigger"
+    public let identifier = "com.Madimo.SwiftLogger.CrashLogTrigger"
 
     private var loggers = [Logger]()
     private var isCrashHandlersInited = false

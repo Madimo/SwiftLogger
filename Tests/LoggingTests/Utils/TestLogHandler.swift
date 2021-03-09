@@ -18,7 +18,7 @@ final class TestLogHandler: LogHandler {
 
     var lastLog: Log?
 
-    init(identifier: String = "com.Madimo.Logger.TestLogHandler") {
+    init(identifier: String = "com.Madimo.SwiftLogger.TestLogHandler") {
         self.identifier = identifier
     }
 

@@ -23,7 +23,7 @@ public final class AppleConsoleLogHandler: LogHandler {
         return formatter
     }()
 
-    public init(identifier: String = "com.Madimo.Logger.AppleConsoleLogHandler", subsystem: String) {
+    public init(identifier: String = "com.Madimo.SwiftLogger.AppleConsoleLogHandler", subsystem: String) {
         self.identifier = identifier
         self.subsystem = subsystem
     }

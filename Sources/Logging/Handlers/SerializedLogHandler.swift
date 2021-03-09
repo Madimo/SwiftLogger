@@ -28,7 +28,7 @@ public final class SerializedLogHandler: LogHandler {
     private var enabled = true
     private var logListeners = [WeakBox<AnyObject>]()
 
-    public init(identifier: String = "com.Madimo.Logger.SerializedLogHandler", fileURL: URL) throws {
+    public init(identifier: String = "com.Madimo.SwiftLogger.SerializedLogHandler", fileURL: URL) throws {
         self.identifier = identifier
         self.fileURL = fileURL
 
