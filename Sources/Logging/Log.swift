@@ -1,6 +1,6 @@
 //
 //  Log.swift
-//  Logger
+//  SwiftLogger
 //
 //
 //  Created by Madimo on 2019/12/11.

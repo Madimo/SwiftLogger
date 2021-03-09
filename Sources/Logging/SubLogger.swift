@@ -1,6 +1,6 @@
 //
 //  SubLogger.swift
-//  Logger
+//  SwiftLogger
 //
 //
 //  Created by Madimo on 2021/3/9.
