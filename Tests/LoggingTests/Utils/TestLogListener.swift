@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import Logger
+import Logging
 
 class TestLogListener: LogListener {
 

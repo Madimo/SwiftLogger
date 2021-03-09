@@ -7,7 +7,7 @@
 //  Copyright © 2019 Madimo. All rights reserved.
 //
 
-import Logger
+import Logging
 import Foundation
 
 final class TestLogHandler: LogHandler {

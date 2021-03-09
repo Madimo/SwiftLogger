@@ -8,7 +8,7 @@
 //
 
 import XCTest
-@testable import Logger
+@testable import Logging
 
 final class LoggerTests: XCTestCase {
 

@@ -8,7 +8,7 @@
 //
 
 import Foundation
-import Logger
+import Logging
 
 let logger = Logger()
 logger.add(trigger: CrashLogTrigger.shared)
