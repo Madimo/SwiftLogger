@@ -534,11 +534,13 @@ final class LoggerTests: XCTestCase {
         ("testLogLevel", testLogLevel),
         ("testLoggerEnabled", testLoggerEnabled),
         ("testLogHandlerEnabled", testLogHandlerEnabled),
+        ("testSubLogger", testSubLogger),
         ("testGeneralLogFilter", testGeneralLogFilter),
         ("testConditionLogFilter", testConditionLogFilter),
         ("testModule", testModule),
         ("testSequenceLogHandler", testSequenceLogHandler),
         ("testSerializedLogHandler", testSerializedLogHandler),
+        ("testFileLogHandler", testFileLogHandler),
         ("testSplitingFileLogHandler", testSplitingFileLogHandler),
     ]
 
